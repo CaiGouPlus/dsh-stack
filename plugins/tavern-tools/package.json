@@ -1,0 +1,38 @@
+{
+  "name": "@local/dsh-tavern-tools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "酒馆工具层：让模型在对话里直接读写角色卡/世界书/预设，并主动查阅未被自动注入的世界书条目。只补面板缺的那一层，与 dsh-tavern 面板共用同一套数据文件。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "tests",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.5-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "test": "node --test tests/data.test.js",
+    "smoke": "node tests/smoke.mjs",
+    "check": "node --check lib/index.js && node --check lib/data.js"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.2 <0.3.0"
+  },
+  "license": "PolyForm-Noncommercial-Copyleft-1.0.0"
+}

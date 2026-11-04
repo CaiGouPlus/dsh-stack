@@ -1,0 +1,501 @@
+/* DSH Remote 统计核心 —— 零依赖
+ *
+ * 事件来源:
+ *   - 插件进程实时监听 DSH 'session/event' (assistant/message + usage) -> POST /stats/ingest
+ *   - 网关扫描 ~/.dsh/sessions 下的 session.jsonl.zstd 历史回填(启动全量 + 定期增量)
+ *
+ * 聚合:
+ *   time(UTC 毫秒) -> Asia/Shanghai(固定 UTC+8, 无夏令时) -> 日 × 小时 × 模型
+ *   时段: 工作日高峰 9:00-12:00 / 14:00-18:00(含起点, 不含终点), 周末全天空闲
+ *   四桶: input(未缓存输入) / cacheRead(缓存命中读) / cacheWrite(缓存写) / output(输出)
+ *
+ * 存储:
+ *   ~/.dsh-remote/stats/days/YYYY-MM-DD.json   按天一个文件, 内含 hours
+ *   ~/.dsh-remote/stats/cursors.json           每个 session 已处理的最大 seq(幂等游标)
+ *
+ * 费用: 固定价格表(元 / 百万 tokens), v2 将改为可配置。
+ */
+'use strict'
+
+const fs = require('node:fs')
+const path = require('node:path')
+const os = require('node:os')
+const { spawn } = require('node:child_process')
+const readline = require('node:readline')
+const zlib = require('node:zlib')
+
+function logGeneration(file) {
+  const match = /^session(?:\.v([1-9]\d*))?\.jsonl(?:\.zstd)?$/.exec(path.basename(file))
+  return match && Number.isSafeInteger(Number(match[1] || 0)) ? Number(match[1] || 0) : null
+}
+
+// V3 preserves message IDs, times and usage while renumbering durable seqs.
+function usageIdentity(event) {
+  return JSON.stringify([event.data?.message?.id || '', event.time, normalizeUsage(event)])
+}
+
+// ---------- 固定价格表(v1 硬编码; v2 将改为配置文件/环境变量) ----------
+// 时段判定: 工作日北京时间 9:00-12:00 与 14:00-18:00 为高峰(含起点不含终点)，周末全天谷时
+const PEAK_HOURS = [[9, 12], [14, 18]]
+const PRICES = {
+  'deepseek-v4-flash': {
+    inputCacheHit: { peak: 0.10, off: 0.05 },
+    inputMiss: { peak: 3.0, off: 1.5 },
+    output: { peak: 9.0, off: 4.5 },
+  },
+  'deepseek-v4-pro': {
+    inputCacheHit: { peak: 0.30, off: 0.15 },
+    inputMiss: { peak: 9.0, off: 4.5 },
+    output: { peak: 27.0, off: 13.5 },
+  },
+}
+// 缓存写入按未命中输入价计费(DeepSeek 缓存写入以未命中输入计费)
+const BUCKET_PRICE_KEY = {
+  input: 'inputMiss',
+  cacheRead: 'inputCacheHit',
+  cacheWrite: 'inputMiss',
+  output: 'output',
+}
+
+const BJ_OFFSET_MS = 8 * 3600 * 1000
+// 定价生效日(北京时间): 2026-08-17 零点更新, 此前的 token 不计入费用统计
+const PRICING_START_DATE = '2026-08-17'
+const DAYS_DIR = 'days'
+const CURSORS_FILE = 'cursors.json'
+
+function pad2(n) { return String(n).padStart(2, '0') }
+
+/** UTC 毫秒 -> 北京小时(0-23)。固定 UTC+8, 不随服务器本地时区。 */
+function beijingHour(timeMs) {
+  return new Date(timeMs + BJ_OFFSET_MS).getUTCHours()
+}
+
+/** UTC 毫秒 -> 北京自然日 'YYYY-MM-DD'。 */
+function beijingDate(timeMs) {
+  const d = new Date(timeMs + BJ_OFFSET_MS)
+  return `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`
+}
+
+/** 北京小时 -> 时段。 */
+function periodOfHour(hour) {
+  for (const [start, end] of PEAK_HOURS) {
+    if (hour >= start && hour < end) return 'peak'
+  }
+  return 'off'
+}
+
+/** 北京自然日是否为周六/周日。 */
+function isWeekendDate(date) {
+  const parts = String(date || '').split('-').map(Number)
+  if (parts.length !== 3 || parts.some(n => !Number.isInteger(n))) return false
+  const day = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay()
+  return day === 0 || day === 6
+}
+
+/** 北京日期 + 小时 -> 计费时段；周末全天谷时。 */
+function periodOfDateHour(date, hour) {
+  return isWeekendDate(date) ? 'off' : periodOfHour(hour)
+}
+
+/** 时段单价; 未知模型返回全 0(统计照记, 费用为 0)。 */
+function pricesFor(model) {
+  return PRICES[model] || null
+}
+
+function emptyBucket() {
+  return { input: 0, cacheRead: 0, cacheWrite: 0, output: 0, cost: 0 }
+}
+
+function addTokens(bucket, key, tokens) {
+  if (typeof tokens === 'number' && Number.isFinite(tokens) && tokens > 0) {
+    bucket[key] += tokens
+  }
+  return bucket
+}
+
+/** 把一个 usage 事件累计进 bucket(含费用)。 */
+function addUsage(bucket, model, period, usage) {
+  const prices = pricesFor(model)
+  const usageObj = usage || {}
+  for (const key of ['input', 'cacheRead', 'cacheWrite', 'output']) {
+    const tokens = usageObj[key]
+    if (typeof tokens !== 'number' || !Number.isFinite(tokens) || tokens <= 0) continue
+    bucket[key] += tokens
+    if (prices) {
+      const priceKey = BUCKET_PRICE_KEY[key]
+      bucket.cost += tokens / 1e6 * prices[priceKey][period]
+    }
+  }
+  return bucket
+}
+
+/** 按当前日期规则重算 bucket 费用，兼容升级前已按工作日价格写入的周末历史数据。 */
+function pricedBucket(model, period, bucket) {
+  return addUsage(emptyBucket(), model, period, bucket)
+}
+
+function mergeBucket(dst, src) {
+  for (const key of ['input', 'cacheRead', 'cacheWrite', 'output', 'cost']) {
+    dst[key] += src[key]
+  }
+  return dst
+}
+
+/** 时段事件 -> 日/小时/模型聚合的 key。 */
+function eventKey(timeMs) {
+  const date = beijingDate(timeMs)
+  const hour = beijingHour(timeMs)
+  return { date, hour, period: periodOfDateHour(date, hour) }
+}
+
+/** 事件里的模型: 优先 message.source.model。 */
+function eventModel(event) {
+  try {
+    const m = event?.data?.message?.source?.model
+    if (typeof m === 'string' && m) return m
+  } catch {}
+  return ''
+}
+
+function normalizeUsage(event) {
+  const u = event?.data?.usage
+  if (!u || typeof u !== 'object') return null
+  return {
+    input: typeof u.inputTokens === 'number' && Number.isFinite(u.inputTokens) ? u.inputTokens : 0,
+    cacheRead: typeof u.cacheReadTokens === 'number' && Number.isFinite(u.cacheReadTokens) ? u.cacheReadTokens : 0,
+    cacheWrite: typeof u.cacheWriteTokens === 'number' && Number.isFinite(u.cacheWriteTokens) ? u.cacheWriteTokens : 0,
+    output: typeof u.outputTokens === 'number' && Number.isFinite(u.outputTokens) ? u.outputTokens : 0,
+  }
+}
+
+/** 汇总一天(hours) -> peak/off/total。 */
+function summarizeDay(day) {
+  const peak = emptyBucket()
+  const off = emptyBucket()
+  for (const hourStr of Object.keys(day?.hours || {})) {
+    const hour = Number(hourStr)
+    const period = periodOfDateHour(day?.date, hour)
+    const target = period === 'peak' ? peak : off
+    for (const model of Object.keys(day.hours[hourStr] || {})) {
+      mergeBucket(target, pricedBucket(model, period, day.hours[hourStr][model]))
+    }
+  }
+  const total = emptyBucket()
+  mergeBucket(total, peak)
+  mergeBucket(total, off)
+  return { peak, off, total }
+}
+
+function dayTotals(day) {
+  const s = summarizeDay(day)
+  return s
+}
+
+function tokenKeyName(key) {
+  return { input: 'input', cacheRead: 'cacheRead', cacheWrite: 'cacheWrite', output: 'output' }[key] || key
+}
+
+/** 统计存储: 单文件按天 + 游标。写操作由网关单进程调用, 内部用同步队列串行化。 */
+class StatsStore {
+  constructor(dir, options = {}) {
+    this.dir = dir || path.join(os.homedir(), '.dsh-remote', 'stats')
+    this.daysDir = path.join(this.dir, DAYS_DIR)
+    this.cursorsFile = path.join(this.dir, CURSORS_FILE)
+    this.spawn = typeof options.spawn === 'function' ? options.spawn : spawn
+    this.cursors = null
+    this.queue = Promise.resolve()
+    fs.mkdirSync(this.daysDir, { recursive: true })
+  }
+
+  _dayFile(date) { return path.join(this.daysDir, `${date}.json`) }
+
+  _loadDay(date) {
+    try {
+      return JSON.parse(fs.readFileSync(this._dayFile(date), 'utf8'))
+    } catch {
+      return { date, hours: {} }
+    }
+  }
+
+  _saveDay(day) {
+    const file = this._dayFile(day.date)
+    const tmp = file + '.tmp'
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(tmp, JSON.stringify(day))
+    fs.renameSync(tmp, file)
+  }
+
+  _loadCursors() {
+    if (this.cursors) return this.cursors
+    try {
+      this.cursors = JSON.parse(fs.readFileSync(this.cursorsFile, 'utf8'))
+    } catch {
+      this.cursors = {}
+    }
+    return this.cursors
+  }
+
+  _saveCursors() {
+    const tmp = this.cursorsFile + '.tmp'
+    fs.mkdirSync(path.dirname(this.cursorsFile), { recursive: true })
+    fs.writeFileSync(tmp, JSON.stringify(this.cursors))
+    fs.renameSync(tmp, this.cursorsFile)
+  }
+
+  _cursor(sessionId) {
+    const c = this._loadCursors()
+    const cur = c[sessionId]
+    if (cur && typeof cur.lastSeq === 'number') return cur
+    return null
+  }
+
+  _setCursor(sessionId, lastSeq, generation) {
+    const c = this._loadCursors()
+    c[sessionId] = { ...c[sessionId], lastSeq, updatedAt: Date.now(), ...(generation == null ? {} : { generation }) }
+    this._saveCursors()
+  }
+
+  /** 在串行队列里执行统计写操作。 */
+  _enqueue(fn) {
+    const run = this.queue.then(fn)
+    this.queue = run.catch(() => {})
+    return run
+  }
+
+  /**
+   * 处理单个 session 事件(已过滤为 assistant/message 且 usage 有效)。
+   * - seq <= cursor: 重复, 跳过
+   * - seq === cursor+1: 正常聚合
+   * - seq > cursor+1: gap, 不聚合, 等待扫描补漏
+   */
+  processEvent(sessionId, event, fallbackModel) {
+    const seq = typeof event.seq === 'number' ? event.seq : -1
+    const time = typeof event.time === 'number' ? event.time : Date.now()
+    const usage = normalizeUsage(event)
+    if (!usage || seq < 0) return { processed: false, gap: false, skip: true }
+    const cur = this._cursor(sessionId)
+    const lastSeq = cur ? cur.lastSeq : -1
+    if (seq <= lastSeq) return { processed: false, gap: false, skip: true }
+    if (seq > lastSeq + 1) return { processed: false, gap: true, skip: true }
+
+    const model = eventModel(event) || fallbackModel || 'unknown'
+    const { date, hour, period } = eventKey(time)
+    if (date < PRICING_START_DATE) {
+      // 定价生效日前的事件不计费，但必须推进游标；否则生效日后的第一条事件会被误判为 gap。
+      this._setCursor(sessionId, seq)
+      return { processed: false, gap: false, skip: true }
+    }
+    const day = this._loadDay(date)
+    const hourBucket = day.hours[hour] || (day.hours[hour] = {})
+    const modelBucket = hourBucket[model] || (hourBucket[model] = emptyBucket())
+    addUsage(modelBucket, model, period, usage)
+    this._saveDay(day)
+    this._setCursor(sessionId, seq)
+    return { processed: true, gap: false, skip: false }
+  }
+
+  /** 串行化版本(HTTP ingest 用)。 */
+  ingestEvent(sessionId, event, fallbackModel) {
+    return this._enqueue(() => this.processEvent(sessionId, event, fallbackModel))
+  }
+
+  /**
+   * 扫描一个 zstd 会话文件, 从游标后顺序处理。返回处理的事件数。
+   * 用系统 zstd 命令解压(项目约束: 不新增 npm 运行时依赖; Windows 无 zstd 时跳过)。
+   */
+  scanFile(file, onProgress) {
+    return this._enqueue(() => this._scanFile(file, onProgress))
+  }
+
+  async _readLog(file, visit) {
+    let input, source, child, childResult
+    if (!file.endsWith('.zstd')) input = fs.createReadStream(file)
+    else if (this.spawn === spawn && typeof zlib.createZstdDecompress === 'function') {
+      source = fs.createReadStream(file)
+      input = zlib.createZstdDecompress()
+      source.on('error', error => input.destroy(error))
+      source.pipe(input)
+    } else {
+      child = this.spawn('zstd', ['-dc', file], { windowsHide: true, stdio: ['ignore', 'pipe', 'ignore'] })
+      input = child.stdout
+      childResult = new Promise(resolve => {
+        child.once('close', code => resolve({ code }))
+        child.once('error', error => resolve({ error }))
+      })
+      child.on('error', error => input.destroy(error))
+    }
+    const rl = readline.createInterface({ input })
+    let lines = 0
+    try {
+      for await (const line of rl) {
+        if (!line.trim()) continue
+        const event = JSON.parse(line)
+        if (Number.isSafeInteger(event.seq)) visit(event)
+        if (++lines % 500 === 0) await new Promise(resolve => setImmediate(resolve))
+      }
+      if (childResult) {
+        const result = await childResult
+        if (result.error) throw result.error
+        if (result.code !== 0) throw new Error('zstd-decompression-failed')
+      }
+    } finally {
+      rl.close()
+      input.destroy()
+      source?.destroy()
+      child?.kill?.()
+    }
+  }
+
+  async _scanFile(file, onProgress) {
+    const sessionId = path.basename(path.dirname(file))
+    const cur = this._cursor(sessionId)
+    const generation = logGeneration(file) ?? 0
+    const migrated = cur && generation !== (cur.generation ?? 0)
+    let lastSeq = migrated ? -1 : (cur?.lastSeq ?? -1)
+    let processed = 0
+    let currentModel = ''
+    const dirtyDays = new Map()
+    const counted = new Map()
+    try {
+      if (migrated) {
+        // Read the preserved predecessor before advancing to a renumbered log.
+        // Missing predecessor is an explicit error, never a blind double count.
+        const names = await fs.promises.readdir(path.dirname(file))
+        const previous = names.find(name => logGeneration(name) === (cur.generation ?? 0))
+        if (!previous) throw new Error('stats-migration-source-missing')
+        await this._readLog(path.join(path.dirname(file), previous), event => {
+          if (event.seq <= cur.lastSeq && event.type === 'assistant/message' && normalizeUsage(event)) {
+            const key = usageIdentity(event)
+            counted.set(key, (counted.get(key) || 0) + 1)
+          }
+        })
+      }
+      await this._readLog(file, event => {
+        if (event.type === 'request/header' && event.data?.config?.model) currentModel = event.data.config.model
+        if (event.type === 'request/context' && event.data?.model) currentModel = event.data.model
+        if (event.seq <= lastSeq) return
+        lastSeq = event.seq
+        if (event.type !== 'assistant/message') return
+        const usage = normalizeUsage(event)
+        if (!usage) return
+        const key = usageIdentity(event)
+        if (counted.get(key)) { counted.set(key, counted.get(key) - 1); return }
+        const model = eventModel(event) || currentModel || 'unknown'
+        const { date, hour, period } = eventKey(event.time)
+        if (date < PRICING_START_DATE) return
+        // Stage detached buckets: a failed read must not mutate cached totals.
+        const day = dirtyDays.get(date) || JSON.parse(JSON.stringify(this._loadDay(date)))
+        dirtyDays.set(date, day)
+        const hourBucket = day.hours[hour] || (day.hours[hour] = {})
+        addUsage(hourBucket[model] || (hourBucket[model] = emptyBucket()), model, period, usage)
+        processed++
+      })
+      if ([...counted.values()].some(count => count > 0)) throw new Error('stats-migration-usage-mismatch')
+      for (const day of dirtyDays.values()) this._saveDay(day)
+      if (lastSeq >= 0) this._setCursor(sessionId, lastSeq, generation)
+      if (onProgress) onProgress({ sessionId, processed })
+      return { sessionId, processed }
+    } catch (error) {
+      return { sessionId, processed: 0, error: error.code || error.message }
+    }
+  }
+
+  /** 扫描 ~/.dsh/sessions 下全部 session.jsonl.zstd。 */
+  async scanAll(sessionsRoot, onProgress) {
+    const root = sessionsRoot || path.join(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'), 'sessions')
+    let files = []
+    try {
+      const walk = async (dir) => {
+        const entries = await fs.promises.readdir(dir, { withFileTypes: true })
+        const logs = entries.filter(ent => ent.isFile() && logGeneration(ent.name) !== null)
+          .sort((a, b) => logGeneration(b.name) - logGeneration(a.name) || a.name.localeCompare(b.name))
+        if (logs.length) files.push(path.join(dir, logs[0].name))
+        for (const ent of entries) {
+          if (ent.isDirectory()) await walk(path.join(dir, ent.name))
+        }
+      }
+      await walk(root)
+    } catch (err) {
+      console.warn('[stats] 扫描会话目录失败: ' + (err.message || err))
+      return { files: 0, processed: 0 }
+    }
+    let processed = 0
+    const errors = []
+    // 串行扫描, 避免大量并发 zstd 子进程
+    for (const file of files) {
+      const out = await this.scanFile(file, onProgress)
+      processed += out.processed || 0
+      if (out.error) errors.push({ sessionId: out.sessionId, error: out.error })
+    }
+    return { files: files.length, processed, ...(errors.length ? { errors } : {}) }
+  }
+
+  summary(days) {
+    const n = Math.max(1, Math.min(Number(days) || 7, 90))
+    const out = []
+    // 查询窗口起点: 不早于定价生效日(生效日之前不统计)
+    const today = beijingDate(Date.now())
+    const startD = new Date(Date.now() + BJ_OFFSET_MS)
+    startD.setUTCDate(startD.getUTCDate() - (n - 1))
+    const windowStart = `${startD.getUTCFullYear()}-${pad2(startD.getUTCMonth() + 1)}-${pad2(startD.getUTCDate())}`
+    const first = windowStart > PRICING_START_DATE ? windowStart : PRICING_START_DATE
+    const [fy, fm, fd] = first.split('-').map(Number)
+    for (let cur = Date.UTC(fy, fm - 1, fd); ; cur += 86400_000) {
+      const date = beijingDate(cur)
+      if (date > today) break
+      const day = this._loadDay(date)
+      const s = dayTotals(day)
+      const byModel = {}
+      for (const hourStr of Object.keys(day.hours || {})) {
+        const period = periodOfDateHour(date, Number(hourStr))
+        for (const [model, bucket] of Object.entries(day.hours[hourStr])) {
+          const m = byModel[model] || (byModel[model] = { peak: emptyBucket(), off: emptyBucket(), total: emptyBucket() })
+          const priced = pricedBucket(model, period, bucket)
+          mergeBucket(m[period], priced)
+          mergeBucket(m.total, priced)
+        }
+      }
+      out.push({ date, ...s, byModel })
+    }
+    return out
+  }
+
+  detail(date) {
+    // 生效日前不返回统计(页面会展示空态与生效日提示)
+    const effective = date >= PRICING_START_DATE ? date : PRICING_START_DATE
+    const day = this._loadDay(effective)
+    const hours = []
+    for (let hour = 0; hour < 24; hour++) {
+      const period = periodOfDateHour(effective, hour)
+      const models = {}
+      const total = emptyBucket()
+      for (const [model, bucket] of Object.entries(day.hours[hour] || {})) {
+        models[model] = pricedBucket(model, period, bucket)
+        mergeBucket(total, models[model])
+      }
+      hours.push({ hour, period, models, total })
+    }
+    return { date: effective, pricingStart: PRICING_START_DATE, hours }
+  }
+}
+
+module.exports = {
+  BJ_OFFSET_MS,
+  PRICING_START_DATE,
+  PEAK_HOURS,
+  PRICES,
+  beijingHour,
+  beijingDate,
+  periodOfHour,
+  isWeekendDate,
+  periodOfDateHour,
+  emptyBucket,
+  addUsage,
+  pricedBucket,
+  summarizeDay,
+  dayTotals,
+  eventKey,
+  eventModel,
+  normalizeUsage,
+  StatsStore,
+}

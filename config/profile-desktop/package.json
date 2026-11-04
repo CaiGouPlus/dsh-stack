@@ -1,0 +1,63 @@
+{
+  "name": "dsh-profile-desktop",
+  "private": true,
+  "dependencies": {
+    "@linxin666/dsh-web-all": "0.4.8",
+    "@local/dsh-cae-bridge": "link:D:/DSH/cae-bridge",
+    "@local/dsh-dnd-ui": "link:D:/DSH/dnd-plugin",
+    "@local/dsh-new-chat": "link:D:/DSH/new-chat",
+    "@local/dsh-plugin-crosspet": "link:D:/DSH/crosspet",
+    "@local/dsh-tavern-style": "link:D:/DSH/tavern-style",
+    "@local/dsh-tavern-tools": "link:D:/DSH/tavern-tools",
+    "@local/dsh-webserver-keepalive": "link:D:/DSH/keepalive",
+    "dsh-agent-presets-host": "link:D:/DSH/agent-presets-host",
+    "dsh-better-sidebar": "0.28.0",
+    "dsh-block-contract": "link:D:/DSH/block-contract",
+    "dsh-display-blocks": "link:D:/DSH/display-blocks",
+    "dsh-image-gen": "0.9.2",
+    "dsh-mech-workbench": "^0.3.1",
+    "dsh-muv-engine": "0.4.7",
+    "dsh-muv-table": "0.3.6",
+    "dsh-remote-plugin": "link:D:/DSH/dsh-remote-plugin",
+    "dsh-tavern": "link:D:/DSH/tavern",
+    "dsh-tiddlywiki": "^0.34.0",
+    "dsh-web-mobile": "3.2.1",
+    "tavernweave-workbench": "link:D:/DSH/tavernweave-workbench"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-web-mobile",
+        "dsh-image-gen",
+        "tavernweave-workbench",
+        "dsh-tavern",
+        "@local/dsh-tavern-tools",
+        "@local/dsh-tavern-style",
+        "dsh-display-blocks",
+        "dsh-block-contract",
+        "dsh-agent-presets-host",
+        "@local/dsh-dnd-ui",
+        "dsh-better-sidebar",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@deepseek-ai/dsh-experimental-tool-worktree",
+        "@deepseek-ai/dsh-experimental-cot-translation-bundle",
+        "@deepseek-ai/dsh-experimental-terminal-bundle",
+        "@deepseek-ai/dsh-experimental-session-search",
+        "@deepseek-ai/dsh-experimental-badge-skill-bundle",
+        "@deepseek-ai/dsh-experimental-ralph-bundle",
+        "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+        "@linxin666/dsh-web-all",
+        "dsh-muv-engine",
+        "dsh-muv-table",
+        "@local/dsh-new-chat",
+        "@local/dsh-cae-bridge",
+        "@local/dsh-webserver-keepalive",
+        "dsh-remote-plugin",
+        "dsh-mech-workbench",
+        "dsh-tiddlywiki"
+      ]
+    }
+  }
+}

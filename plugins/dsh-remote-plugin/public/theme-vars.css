@@ -1,0 +1,517 @@
+/* DSH Remote · 移动优先 · 六皮肤(默认深空/深色落日/亮色易北爱乐厅/中性草原孤塔/黑曜白/亮色蓝色大肥鱼)
+ * 统一 --dsr-* 变量; 主题由 <html data-theme="default|dark|light|neutral|mono|fish"> 驱动, theme.js 持久化。
+ * 红绿色弱友好原则: 状态语义色之外, 品牌色使用蓝/青 + 橙/紫系, 避免红绿配对。
+ * 角色皮肤(蓝色大肥鱼)另有独立皮肤包 public/skins/<name>/skin.css, 只含配色与装饰, 不改布局。 */
+
+/* ============ 通用变量 ============ */
+:root {
+  --dsr-radius: 14px;
+  --dsr-safe-top: max(env(safe-area-inset-top, 0px), var(--native-top, 0px));
+  --dsr-safe-b: max(env(safe-area-inset-bottom, 0px), var(--native-bottom, 0px));
+}
+/* Native geometry already subtracts any system padding consumed by the WebView. */
+html[data-native-insets="overlap"] {
+  --dsr-safe-top: var(--native-top, 0px);
+  --dsr-safe-b: var(--native-bottom, 0px);
+}
+
+html,
+html[data-theme="default"],
+html[data-theme="dark"],
+html[data-theme="mono"] { color-scheme: dark; }
+html[data-theme="light"],
+html[data-theme="neutral"],
+html[data-theme="fish"] { color-scheme: light; }
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) { color-scheme: light; }
+}
+
+/* ============ 深空「默认」: 石墨中性色表面 + 单一清蓝色阶 ============ */
+:root,
+html[data-theme="default"] {
+  /* 中性灰阶 0(白) → 9(近黑) */
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #F4F6F9;
+  --dsr-neutral-2: #E6EAF0;
+  --dsr-neutral-3: #C9D1DC;
+  --dsr-neutral-4: #A6B0BE;
+  --dsr-neutral-5: #828D9E;
+  --dsr-neutral-6: #616C7E;
+  --dsr-neutral-7: #444E5E;
+  --dsr-neutral-8: #2B3442;
+  --dsr-neutral-9: #1A212C;
+
+  --dsr-bg: #0D1117;
+  --dsr-bg-2: #11161E;
+  --dsr-panel: #161B22;
+  --dsr-panel-2: #21262D;
+  --dsr-line: #30363D;
+  --dsr-divider: rgba(240, 246, 252, .14);
+  --dsr-text: #F0F6FC;
+  --dsr-muted: #A7B0BC;
+  --dsr-text-disabled: #6E7681;
+
+  --dsr-accent: #58A6FF;
+  --dsr-on-accent: #07111F;
+  --dsr-accent-strong: #79C0FF;
+  --dsr-accent-soft: #58A6FF1F;
+  --dsr-accent-line: #58A6FF66;
+  --dsr-accent-2: #A5D6FF;
+  --dsr-accent-2-strong: #CAEAFF;
+  --dsr-accent-2-soft: #A5D6FF1A;
+  --dsr-accent-2-line: #A5D6FF59;
+  --dsr-brand-a: #58A6FF;
+  --dsr-brand-b: #A5D6FF;
+
+  --dsr-success: #4BCF7E;
+  --dsr-success-soft: #4BCF7E21;
+  --dsr-success-line: #4BCF7E66;
+  --dsr-warning: #FF9E64;
+  --dsr-warning-soft: #FF9E6421;
+  --dsr-warning-line: #FF9E6466;
+  --dsr-on-warning: #1A120B;
+  --dsr-error: #FF8F6B;
+  --dsr-error-soft: #FF8F6B24;
+  --dsr-error-line: #FF8F6B66;
+  --dsr-info: #7DCFFF;
+  --dsr-info-soft: #7DCFFF21;
+  --dsr-info-line: #7DCFFF66;
+
+  --dsr-head-bg: rgba(13, 17, 23, .94);
+  --dsr-nav-bg: rgba(22, 27, 34, .95);
+  --dsr-nav-muted: #A7B0BC;
+  --dsr-nav-active: #79C0FF;
+  --dsr-nav-badge-bg: #FF9E64;
+  --dsr-nav-badge-text: #1A120B;
+  --dsr-composer-bg: rgba(22, 27, 34, .94);
+  --dsr-overlay: rgba(5, 7, 14, .66);
+  --dsr-code-bg: rgba(0, 0, 0, .28);
+  --dsr-shadow: rgba(0, 0, 0, .4);
+  --dsr-glow: rgba(88, 166, 255, .56);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(13, 17, 23, .96), rgba(24, 52, 82, .94), rgba(88, 166, 255, .45), rgba(24, 52, 82, .94), rgba(13, 17, 23, .96));
+  --dsr-head-running-line: rgba(88, 166, 255, .55);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(13, 17, 23, .96), rgba(74, 34, 23, .92), rgba(255, 158, 100, .48), rgba(74, 34, 23, .92), rgba(13, 17, 23, .96));
+  --dsr-head-interrupted-line: rgba(255, 158, 100, .55);
+}
+
+/* ============ 深色「落日」: 暖炭色表面 + 琥珀珊瑚同系强调 ============ */
+html[data-theme="dark"] {
+  /* 中性灰阶 0(白) → 9(近黑) */
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #F4F6F9;
+  --dsr-neutral-2: #E6EAF0;
+  --dsr-neutral-3: #C9D1DC;
+  --dsr-neutral-4: #A6B0BE;
+  --dsr-neutral-5: #828D9E;
+  --dsr-neutral-6: #616C7E;
+  --dsr-neutral-7: #444E5E;
+  --dsr-neutral-8: #2B3442;
+  --dsr-neutral-9: #1A212C;
+
+  /* 表面与文字 */
+  --dsr-bg: #161316;
+  --dsr-bg-2: #1D1819;
+  --dsr-panel: #251D1D;
+  --dsr-panel-2: #302323;
+  --dsr-line: #4A3532;
+  --dsr-divider: rgba(255, 244, 230, .15);
+  --dsr-text: #FFF4E6;
+  --dsr-muted: #D2BEB0;
+  --dsr-text-disabled: #8E7B73;
+
+  /* 品牌强调(琥珀橙)与点缀(米色) */
+  --dsr-accent: #FFB86B;
+  --dsr-on-accent: #1A120B;
+  --dsr-accent-strong: #FFD08A;
+  --dsr-accent-soft: #FFB86B1F;
+  --dsr-accent-line: #FFB86B70;
+  --dsr-accent-2: #FF8A65;
+  --dsr-accent-2-strong: #FFA083;
+  --dsr-accent-2-soft: #FF8A651F;
+  --dsr-accent-2-line: #FF8A6566;
+  --dsr-brand-a: #FFB86B;
+  --dsr-brand-b: #FF8A65;
+
+  /* 状态色(WCAG 对比度按暖炭底校准) */
+  --dsr-success: #7EE2A8;
+  --dsr-success-soft: #7EE2A821;
+  --dsr-success-line: #7EE2A866;
+  --dsr-warning: #FFB86B;
+  --dsr-warning-soft: #FFB86B21;
+  --dsr-warning-line: #FFB86B66;
+  --dsr-on-warning: #1A120B;
+  --dsr-error: #FFB4A6;
+  --dsr-error-soft: #FFB4A624;
+  --dsr-error-line: #FFB4A666;
+  --dsr-info: #7DCFFF;
+  --dsr-info-soft: #7DCFFF21;
+  --dsr-info-line: #7DCFFF66;
+
+  /* 悬浮/遮罩/特殊表面 */
+  --dsr-head-bg: rgba(22, 19, 22, .95);
+  --dsr-nav-bg: rgba(37, 29, 29, .96);
+  --dsr-nav-muted: #D2BEB0;
+  --dsr-nav-active: #FFD08A;
+  --dsr-nav-badge-bg: #FFB86B;
+  --dsr-nav-badge-text: #1A120B;
+  --dsr-composer-bg: rgba(37, 29, 29, .95);
+  --dsr-overlay: rgba(12, 7, 8, .74);
+  --dsr-code-bg: rgba(0, 0, 0, .28);
+  --dsr-shadow: rgba(0, 0, 0, .4);
+  --dsr-glow: rgba(255, 184, 107, .46);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(22, 19, 22, .96), rgba(94, 49, 34, .94), rgba(255, 184, 107, .45), rgba(94, 49, 34, .94), rgba(22, 19, 22, .96));
+  --dsr-head-running-line: rgba(255, 184, 107, .58);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(22, 19, 22, .96), rgba(94, 38, 31, .94), rgba(255, 138, 101, .45), rgba(94, 38, 31, .94), rgba(22, 19, 22, .96));
+  --dsr-head-interrupted-line: rgba(255, 180, 166, .55);
+}
+
+/* ============ 亮色「易北爱乐厅」: 玻璃白表面 + 易北青蓝单色阶 ============ */
+html[data-theme="light"] {
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #FAF9F7;
+  --dsr-neutral-2: #F3F1ED;
+  --dsr-neutral-3: #E8E5DF;
+  --dsr-neutral-4: #D8D4CC;
+  --dsr-neutral-5: #B8B3A9;
+  --dsr-neutral-6: #8A857C;
+  --dsr-neutral-7: #615D56;
+  --dsr-neutral-8: #3F3C37;
+  --dsr-neutral-9: #2B2B2B;
+
+  --dsr-bg: #F5F7F8;
+  --dsr-bg-2: #E8EDF0;
+  --dsr-panel: #FFFFFF;
+  --dsr-panel-2: #FFFFFF;
+  --dsr-line: #C7D2D8;
+  --dsr-divider: rgba(24, 33, 38, .13);
+  --dsr-text: #182126;
+  --dsr-muted: #52616A;
+  --dsr-text-disabled: #7B8990;
+
+  /* 深青蓝负责交互，同色阶浅青蓝负责柔和强调；铜色仅用于品牌点缀。 */
+  --dsr-accent: #176B87;
+  --dsr-on-accent: #FFFFFF;
+  --dsr-accent-strong: #0F5268;
+  --dsr-accent-soft: #176B871A;
+  --dsr-accent-line: #176B8759;
+  --dsr-accent-2: #4B879C;
+  --dsr-accent-2-strong: #2E6E84;
+  --dsr-accent-2-soft: #4B879C1A;
+  --dsr-accent-2-line: #4B879C59;
+  --dsr-brand-a: #176B87;
+  --dsr-brand-b: #B8613E;
+
+  --dsr-success: #237A46;
+  --dsr-success-soft: #237A461A;
+  --dsr-success-line: #237A4659;
+  --dsr-warning: #965A0B;
+  --dsr-warning-soft: #B96A0E1F;
+  --dsr-warning-line: #B96A0E59;
+  --dsr-on-warning: #FFFFFF;
+  --dsr-error: #B7423F;
+  --dsr-error-soft: #B7423F1F;
+  --dsr-error-line: #B7423F59;
+  --dsr-info: #2563C0;
+  --dsr-info-soft: #2563C01A;
+  --dsr-info-line: #2563C059;
+
+  --dsr-head-bg: rgba(245, 247, 248, .96);
+  --dsr-nav-bg: rgba(255, 255, 255, .96);
+  --dsr-nav-muted: #52616A;
+  --dsr-nav-active: #0F5268;
+  --dsr-nav-badge-bg: #965A0B;
+  --dsr-nav-badge-text: #FFFFFF;
+  --dsr-composer-bg: rgba(255, 255, 255, .95);
+  --dsr-overlay: rgba(24, 33, 38, .42);
+  --dsr-code-bg: rgba(0, 0, 0, .06);
+  --dsr-shadow: rgba(24, 33, 38, .17);
+  --dsr-glow: rgba(23, 107, 135, .35);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(245, 247, 248, .96), rgba(75, 135, 156, .26), rgba(255, 255, 255, .82), rgba(75, 135, 156, .26), rgba(245, 247, 248, .96));
+  --dsr-head-running-line: rgba(23, 107, 135, .58);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(245, 247, 248, .96), rgba(183, 66, 63, .18), rgba(255, 255, 255, .82), rgba(183, 66, 63, .18), rgba(245, 247, 248, .96));
+  --dsr-head-interrupted-line: rgba(183, 66, 63, .55);
+}
+
+/* ============ 中性「草原孤塔」: 高明度鼠尾草表面 + 林地绿单色阶 ============ */
+html[data-theme="neutral"] {
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #FAF7EE;
+  --dsr-neutral-2: #F1EDDF;
+  --dsr-neutral-3: #E6DFC8;
+  --dsr-neutral-4: #D5CDB4;
+  --dsr-neutral-5: #B8AF91;
+  --dsr-neutral-6: #8E866D;
+  --dsr-neutral-7: #6B6450;
+  --dsr-neutral-8: #454133;
+  --dsr-neutral-9: #2B2B2B;
+
+  --dsr-bg: #EEF1E8;
+  --dsr-bg-2: #E2E8DB;
+  --dsr-panel: #FAFBF6;
+  --dsr-panel-2: #FFFFFF;
+  --dsr-line: #C2CCB7;
+  --dsr-divider: rgba(31, 40, 28, .13);
+  --dsr-text: #1F281C;
+  --dsr-muted: #4E5D49;
+  --dsr-text-disabled: #768171;
+
+  /* 橄榄军绿 = 主色(按钮/开关/底部导航块); 陶土砖红 = 强调(徽标/图标/链接) */
+  --dsr-accent: #47643C;
+  --dsr-on-accent: #F5F1E3;
+  --dsr-accent-strong: #36502E;
+  --dsr-accent-soft: #47643C1F;
+  --dsr-accent-line: #47643C66;
+  --dsr-accent-2: #789568;
+  --dsr-accent-2-strong: #5D7C50;
+  --dsr-accent-2-soft: #7895681F;
+  --dsr-accent-2-line: #78956866;
+  --dsr-brand-a: #47643C;
+  --dsr-brand-b: #A95F3F;
+
+  --dsr-success: #1E5C33;
+  --dsr-success-soft: #1E5C331F;
+  --dsr-success-line: #1E5C3366;
+  --dsr-warning: #8A4B0C;
+  --dsr-warning-soft: #8A4B0C1F;
+  --dsr-warning-line: #8A4B0C66;
+  --dsr-on-warning: #FFFFFF;
+  --dsr-error: #8A2A1F;
+  --dsr-error-soft: #8A2A1F1F;
+  --dsr-error-line: #8A2A1F66;
+  --dsr-info: #1F4E7A;
+  --dsr-info-soft: #1F4E7A1F;
+  --dsr-info-line: #1F4E7A66;
+
+  --dsr-head-bg: rgba(238, 241, 232, .96);
+  --dsr-nav-bg: rgba(250, 251, 246, .96);
+  --dsr-nav-muted: #5B6856;
+  --dsr-nav-active: #36502E;
+  --dsr-nav-badge-bg: #A95F3F;
+  --dsr-nav-badge-text: #FFFFFF;
+  --dsr-composer-bg: rgba(250, 251, 246, .95);
+  --dsr-overlay: rgba(43, 43, 43, .4);
+  --dsr-code-bg: rgba(0, 0, 0, .07);
+  --dsr-shadow: rgba(31, 40, 28, .17);
+  --dsr-glow: rgba(71, 100, 60, .36);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(238, 241, 232, .96), rgba(120, 149, 104, .26), rgba(255, 255, 255, .78), rgba(120, 149, 104, .26), rgba(238, 241, 232, .96));
+  --dsr-head-running-line: rgba(71, 100, 60, .58);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(238, 241, 232, .96), rgba(169, 95, 63, .18), rgba(255, 255, 255, .78), rgba(169, 95, 63, .18), rgba(238, 241, 232, .96));
+  --dsr-head-interrupted-line: rgba(169, 95, 63, .58);
+}
+
+/* ============ 黑白「黑曜白」: 纯灰阶层次 + 冷白高光 ============ */
+html[data-theme="mono"] {
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #F5F5F5;
+  --dsr-neutral-2: #E5E5E5;
+  --dsr-neutral-3: #D4D4D4;
+  --dsr-neutral-4: #A3A3A3;
+  --dsr-neutral-5: #737373;
+  --dsr-neutral-6: #525252;
+  --dsr-neutral-7: #333333;
+  --dsr-neutral-8: #171717;
+  --dsr-neutral-9: #050505;
+
+  --dsr-bg: #050505;
+  --dsr-bg-2: #0A0A0A;
+  --dsr-panel: #111111;
+  --dsr-panel-2: #1A1A1A;
+  --dsr-line: #333333;
+  --dsr-divider: rgba(255, 255, 255, .14);
+  --dsr-text: #F5F5F5;
+  --dsr-muted: #A3A3A3;
+  --dsr-text-disabled: #737373;
+
+  --dsr-accent: #F5F5F5;
+  --dsr-on-accent: #050505;
+  --dsr-accent-strong: #FFFFFF;
+  --dsr-accent-soft: rgba(255, 255, 255, .10);
+  --dsr-accent-line: rgba(255, 255, 255, .38);
+  --dsr-accent-2: #A3A3A3;
+  --dsr-accent-2-strong: #D4D4D4;
+  --dsr-accent-2-soft: rgba(163, 163, 163, .12);
+  --dsr-accent-2-line: rgba(212, 212, 212, .32);
+  --dsr-brand-a: #FFFFFF;
+  --dsr-brand-b: #737373;
+
+  --dsr-success: #D4D4D4;
+  --dsr-success-soft: rgba(212, 212, 212, .10);
+  --dsr-success-line: rgba(212, 212, 212, .36);
+  --dsr-warning: #E5E5E5;
+  --dsr-warning-soft: rgba(229, 229, 229, .11);
+  --dsr-warning-line: rgba(229, 229, 229, .40);
+  --dsr-on-warning: #050505;
+  --dsr-error: #FFFFFF;
+  --dsr-error-soft: rgba(255, 255, 255, .13);
+  --dsr-error-line: rgba(255, 255, 255, .48);
+  --dsr-info: #BDBDBD;
+  --dsr-info-soft: rgba(189, 189, 189, .10);
+  --dsr-info-line: rgba(189, 189, 189, .34);
+
+  --dsr-head-bg: rgba(5, 5, 5, .96);
+  --dsr-nav-bg: rgba(10, 10, 10, .96);
+  --dsr-nav-muted: #8A8A8A;
+  --dsr-nav-active: #FFFFFF;
+  --dsr-nav-badge-bg: #F5F5F5;
+  --dsr-nav-badge-text: #050505;
+  --dsr-composer-bg: rgba(10, 10, 10, .95);
+  --dsr-overlay: rgba(0, 0, 0, .78);
+  --dsr-code-bg: rgba(255, 255, 255, .055);
+  --dsr-shadow: rgba(0, 0, 0, .72);
+  --dsr-glow: rgba(255, 255, 255, .30);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(5, 5, 5, .97), rgba(38, 38, 38, .95), rgba(245, 245, 245, .36), rgba(38, 38, 38, .95), rgba(5, 5, 5, .97));
+  --dsr-head-running-line: rgba(255, 255, 255, .46);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(5, 5, 5, .97), rgba(28, 28, 28, .95), rgba(163, 163, 163, .32), rgba(28, 28, 28, .95), rgba(5, 5, 5, .97));
+  --dsr-head-interrupted-line: rgba(212, 212, 212, .42);
+}
+
+/* ============ 亮色「蓝色大肥鱼」: DeepSeek 娘角色皮肤 · 晴空亮蓝底 + 深海蓝主色 ============
+ * 角色取自「蓝色大肥鱼」鲸鱼娘: 深蓝渐变长发、白围裙、鲸尾、金色小星星。
+ * 装饰图标/吉祥物在 public/skins/blue-fish/skin.css; 这里只放配色变量, 四端共享。
+ * 正文与弱化文字对比度按亮色底校准; 白字主按钮对比度 ≥ 6。 */
+html[data-theme="fish"] {
+  --dsr-neutral-0: #FFFFFF;
+  --dsr-neutral-1: #F4FBFF;
+  --dsr-neutral-2: #EAF6FF;
+  --dsr-neutral-3: #D8ECFF;
+  --dsr-neutral-4: #BFDCF7;
+  --dsr-neutral-5: #9BC1E0;
+  --dsr-neutral-6: #6E92B2;
+  --dsr-neutral-7: #4A6786;
+  --dsr-neutral-8: #22406B;
+  --dsr-neutral-9: #17284F;
+
+  /* 表面与文字: 晴空亮蓝底 + 白卡片 + 深海蓝文字 */
+  --dsr-bg: #EAF6FF;
+  --dsr-bg-2: #D8ECFF;
+  --dsr-panel: #FFFFFF;
+  --dsr-panel-2: #F3FAFF;
+  --dsr-line: #B9D7F2;
+  --dsr-divider: rgba(23, 40, 79, .14);
+  --dsr-text: #17284F;
+  --dsr-muted: #465F86;
+  --dsr-text-disabled: #7C8FB0;
+
+  /* 深海蓝负责交互，鲸鱼娘的腮红粉负责点缀（金色只出现在装饰星星里） */
+  --dsr-accent: #2F52D0;
+  --dsr-on-accent: #FFFFFF;
+  --dsr-accent-strong: #2440B0;
+  --dsr-accent-soft: #2F52D01A;
+  --dsr-accent-line: #2F52D059;
+  --dsr-accent-2: #B3356E;
+  --dsr-accent-2-strong: #96285A;
+  --dsr-accent-2-soft: #B3356E1A;
+  --dsr-accent-2-line: #B3356E59;
+  --dsr-brand-a: #5FC8FF;
+  --dsr-brand-b: #FFAFC9;
+
+  /* 状态色(按亮蓝底校准) */
+  --dsr-success: #0F6B4F;
+  --dsr-success-soft: #0F6B4F1A;
+  --dsr-success-line: #0F6B4F59;
+  --dsr-warning: #8A5A05;
+  --dsr-warning-soft: #B96A0E1F;
+  --dsr-warning-line: #B96A0E59;
+  --dsr-on-warning: #FFFFFF;
+  --dsr-error: #B32D4E;
+  --dsr-error-soft: #B32D4E1F;
+  --dsr-error-line: #B32D4E59;
+  --dsr-info: #2456C8;
+  --dsr-info-soft: #2456C81A;
+  --dsr-info-line: #2456C859;
+
+  /* 悬浮/遮罩/特殊表面 */
+  --dsr-head-bg: rgba(234, 246, 255, .94);
+  --dsr-nav-bg: rgba(255, 255, 255, .96);
+  --dsr-nav-muted: #465F86;
+  --dsr-nav-active: #2440B0;
+  --dsr-nav-badge-bg: #B3356E;
+  --dsr-nav-badge-text: #FFFFFF;
+  --dsr-composer-bg: rgba(255, 255, 255, .94);
+  --dsr-overlay: rgba(23, 40, 79, .38);
+  --dsr-code-bg: rgba(47, 82, 208, .07);
+  --dsr-shadow: rgba(23, 40, 79, .18);
+  --dsr-glow: rgba(95, 200, 255, .45);
+  --dsr-head-running-bg: linear-gradient(90deg, rgba(234, 246, 255, .96), rgba(95, 200, 255, .22), rgba(255, 255, 255, .86), rgba(95, 200, 255, .22), rgba(234, 246, 255, .96));
+  --dsr-head-running-line: rgba(47, 82, 208, .55);
+  --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(234, 246, 255, .96), rgba(255, 175, 201, .22), rgba(255, 255, 255, .86), rgba(255, 175, 201, .22), rgba(234, 246, 255, .96));
+  --dsr-head-interrupted-line: rgba(179, 45, 78, .50);
+}
+
+html[data-theme="mono"] body {
+  background-image: radial-gradient(ellipse 82% 46% at 50% -16%, rgba(255, 255, 255, .085), transparent 72%);
+  background-attachment: fixed;
+}
+html[data-theme="mono"] .brand-dot,
+html[data-theme="mono"] .plugin-brand-mark {
+  background: #F5F5F5;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .08), 0 0 18px rgba(255, 255, 255, .38);
+}
+
+/* 无 JS 或 JS 前: 跟随系统深浅偏好 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --dsr-neutral-0: #FFFFFF;
+    --dsr-neutral-1: #FAF9F7;
+    --dsr-neutral-2: #F3F1ED;
+    --dsr-neutral-3: #E8E5DF;
+    --dsr-neutral-4: #D8D4CC;
+    --dsr-neutral-5: #B8B3A9;
+    --dsr-neutral-6: #8A857C;
+    --dsr-neutral-7: #615D56;
+    --dsr-neutral-8: #3F3C37;
+    --dsr-neutral-9: #2B2B2B;
+
+    --dsr-bg: #F5F7F8;
+    --dsr-bg-2: #E8EDF0;
+    --dsr-panel: #FFFFFF;
+    --dsr-panel-2: #FFFFFF;
+    --dsr-line: #C7D2D8;
+    --dsr-divider: rgba(24, 33, 38, .13);
+    --dsr-text: #182126;
+    --dsr-muted: #52616A;
+    --dsr-text-disabled: #7B8990;
+
+    --dsr-accent: #176B87;
+    --dsr-on-accent: #FFFFFF;
+    --dsr-accent-strong: #0F5268;
+    --dsr-accent-soft: #176B871A;
+    --dsr-accent-line: #176B8759;
+    --dsr-accent-2: #4B879C;
+    --dsr-accent-2-strong: #2E6E84;
+    --dsr-accent-2-soft: #4B879C1A;
+    --dsr-accent-2-line: #4B879C59;
+    --dsr-brand-a: #176B87;
+    --dsr-brand-b: #B8613E;
+
+    --dsr-success: #237A46;
+    --dsr-success-soft: #237A461A;
+    --dsr-success-line: #237A4659;
+    --dsr-warning: #965A0B;
+    --dsr-warning-soft: #B96A0E1F;
+    --dsr-warning-line: #B96A0E59;
+    --dsr-on-warning: #FFFFFF;
+    --dsr-error: #B7423F;
+    --dsr-error-soft: #B7423F1F;
+    --dsr-error-line: #B7423F59;
+    --dsr-info: #2563C0;
+    --dsr-info-soft: #2563C01A;
+    --dsr-info-line: #2563C059;
+
+    --dsr-head-bg: rgba(245, 247, 248, .96);
+    --dsr-nav-bg: rgba(255, 255, 255, .96);
+    --dsr-nav-muted: #52616A;
+    --dsr-nav-active: #0F5268;
+    --dsr-nav-badge-bg: #965A0B;
+    --dsr-nav-badge-text: #FFFFFF;
+    --dsr-composer-bg: rgba(255, 255, 255, .95);
+    --dsr-overlay: rgba(24, 33, 38, .42);
+    --dsr-code-bg: rgba(0, 0, 0, .06);
+    --dsr-shadow: rgba(24, 33, 38, .17);
+    --dsr-glow: rgba(23, 107, 135, .35);
+    --dsr-head-running-bg: linear-gradient(90deg, rgba(245, 247, 248, .96), rgba(75, 135, 156, .26), rgba(255, 255, 255, .82), rgba(75, 135, 156, .26), rgba(245, 247, 248, .96));
+    --dsr-head-running-line: rgba(23, 107, 135, .58);
+    --dsr-head-interrupted-bg: linear-gradient(90deg, rgba(245, 247, 248, .96), rgba(183, 66, 63, .18), rgba(255, 255, 255, .82), rgba(183, 66, 63, .18), rgba(245, 247, 248, .96));
+    --dsr-head-interrupted-line: rgba(183, 66, 63, .55);
+  }
+}

@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0D1117">
+  <title>DSH Remote · 管理</title>
+  <script>/* 首帧前应用皮肤 */ (function(){try{var t=localStorage.getItem('dshTheme');if(t!=='default'&&t!=='dark'&&t!=='light'&&t!=='neutral'&&t!=='mono'&&t!=='fish'){t='fish'}}catch(e){t='fish'}document.documentElement.setAttribute('data-theme',t)})()</script>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../relay-settings.css">
+  <link rel="stylesheet" href="../insights.css">
+  <link rel="stylesheet" href="../setup.css">
+  <link rel="stylesheet" href="../doctor.css">
+  <link rel="stylesheet" href="../skins/blue-fish/skin.css">
+  <style>
+    .admin-wrap { max-width: 1180px; margin: 0 auto; padding: calc(env(safe-area-inset-top, 0px) + 14px) 14px 40px; }
+    .admin-title {
+      position: sticky; top: 0; z-index: 40;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 14px; padding: 10px 0;
+      background: var(--dsr-bg); /* 实色背景: 滚动时内容不穿透, 不用毛玻璃(小米/MIUI WebView 图层丢花屏) */
+      backdrop-filter: none;
+    }
+    .admin-title h1 { font-size: 20px; margin: 0; white-space: nowrap; }
+    .login-card { background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); padding: 16px; display: flex; gap: 8px; }
+    .login-card input { flex: 1; background: var(--dsr-bg); color: var(--dsr-text); border: 1px solid var(--dsr-line); border-radius: 10px; padding: 10px 12px; font: inherit; outline: none; }
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-bottom: 14px; }
+    .stat-card { background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); padding: 12px 14px; }
+    .stat-card .v { font-size: 20px; font-weight: 700; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-card .k { font-size: 11px; color: var(--dsr-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-card.ok .v { color: var(--dsr-success); } .stat-card.warn .v { color: var(--dsr-warning); }
+    .stats-dash { margin-bottom: 14px; }
+    .stats-dash .stat-grid { margin-bottom: 8px; }
+    .stats-chart { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding: 12px 14px 10px; background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); overflow-x: auto; overflow-y: hidden; }
+    .stats-legend { display: flex; gap: 12px; font-size: 11px; color: var(--dsr-muted); margin: 6px 2px 0; }
+    .stats-legend .lg { display: inline-flex; align-items: center; gap: 4px; }
+    .stats-legend .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+    .stats-legend .sw.peak { background: var(--dsr-accent-strong); }
+    .stats-legend .sw.off { background: var(--dsr-accent-2); }
+    .bucket-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; margin-top: 6px; }
+    .bucket-grid .b { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; font-size: 11px; min-width: 0; }
+    .bucket-grid .b .n { color: var(--dsr-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bucket-grid .b .t { font-weight: 600; white-space: nowrap; }
+    .stats-bar { flex: 1; min-width: 38px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; }
+    .stats-bar .bars { width: 100%; max-width: 46px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; border-radius: 6px 6px 0 0; overflow: hidden; background: var(--dsr-accent-soft); }
+    .stats-bar .seg { width: 100%; }
+    .stats-bar .seg.peak { background: var(--dsr-accent-strong); }
+    .stats-bar .seg.off { background: var(--dsr-accent-2); }
+    .stats-bar .lbl { font-size: 10px; color: var(--dsr-muted); white-space: nowrap; }
+    .stats-bar .val { font-size: 10px; color: var(--dsr-text); white-space: nowrap; }
+    .stats-empty { color: var(--dsr-muted); text-align: center; padding: 20px 0; font-size: 12px; }
+    .stats-note { color: var(--dsr-muted); font-size: 11px; line-height: 1.6; margin-top: 8px; }
+    .table-wrap { background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 0; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--dsr-line); vertical-align: top; }
+    th { font-size: 11px; color: var(--dsr-muted); letter-spacing: .5px; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--dsr-line); color: var(--dsr-muted); white-space: nowrap; }
+    .badge.app { color: var(--dsr-accent-strong); border-color: var(--dsr-accent-line); background: var(--dsr-accent-soft); }
+    .badge.admin { color: var(--dsr-accent-2); border-color: var(--dsr-accent-2-line); background: var(--dsr-accent-2-soft); }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--dsr-line); margin-right: 5px; }
+    .dot.on { background: var(--dsr-success); box-shadow: 0 0 6px var(--dsr-success-line); }
+    .dot.off { background: var(--dsr-warning); }
+    .mono { font-family: ui-monospace, monospace; font-size: 12px; word-break: break-all; }
+    .nowrap { white-space: nowrap; }
+    .ua { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dsr-muted); }
+    /* 宽屏: 固定列宽让表格铺满容器, 名称列吸收剩余宽度, 消除临界横向滚动条 */
+    @media (min-width: 1000px) {
+      table { table-layout: fixed; }
+      th:nth-child(1) { width: 80px; }
+      th:nth-child(2) { width: 180px; }
+      th:nth-child(3) { width: 88px; }
+      th:nth-child(4) { width: 120px; }
+      th:nth-child(5) { width: 84px; }
+      th:nth-child(6) { width: 56px; }
+      th:nth-child(7) { width: 110px; }
+      th:nth-child(8) { width: 280px; }
+      th:nth-child(9) { width: 72px; }
+      td:nth-child(2) { white-space: nowrap; }
+      td:nth-child(2) b { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+      tbody tr:hover { background: var(--dsr-accent-soft); }
+    }
+    .token-row { display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin: 10px 0 14px; }
+    .token-row code { flex: none; width: 100%; background: var(--dsr-bg); border: 1px solid var(--dsr-line); border-radius: 8px; padding: 8px 10px; font-size: 12px; white-space: nowrap; overflow-x: auto; }
+    .token-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .token-actions .mini-btn { flex: 1 1 auto; text-align: center; padding: 6px 8px; font-size: 12.5px; }
+    .device-key-card { margin: 0 0 14px; }
+    .device-key-toggle { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 13px; border:1px solid var(--dsr-line); border-radius:16px; background:var(--dsr-panel); }
+    .device-key-toggle-copy { min-width:0; }
+    .device-key-toggle-title { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:750; }
+    .device-key-toggle-desc { margin-top:3px; color:var(--dsr-muted); font-size:11px; line-height:1.45; }
+    .device-key-toggle-actions { display:flex; align-items:center; gap:8px; flex:none; }
+    .device-key-switch { position:relative; width:42px; height:24px; flex:none; }
+    .device-key-switch input { position:absolute; opacity:0; pointer-events:none; }
+    .device-key-switch span { position:absolute; inset:0; border:1px solid var(--dsr-line); border-radius:999px; background:var(--dsr-bg-2); cursor:pointer; transition:background-color .18s ease,border-color .18s ease; }
+    .device-key-switch span::after { content:''; position:absolute; width:18px; height:18px; left:2px; top:2px; border-radius:50%; background:var(--dsr-muted); transition:transform .18s ease,background-color .18s ease; }
+    .device-key-switch input:checked + span { border-color:var(--dsr-accent-line); background:var(--dsr-accent-soft); }
+    .device-key-switch input:checked + span::after { transform:translateX(18px); background:var(--dsr-accent-strong); }
+    .device-key-switch input:focus-visible + span { outline:2px solid var(--dsr-accent-strong); outline-offset:2px; }
+    .device-key-panel { margin-top:10px; border:1px solid var(--dsr-line); border-radius:16px; overflow:hidden; background:var(--dsr-panel); }
+    .device-key-grid { display:grid; grid-template-columns:minmax(120px,.8fr) minmax(110px,.65fr) minmax(190px,1.4fr) auto; gap:10px; align-items:center; padding:10px 12px; }
+    .device-key-grid + .device-key-grid { border-top:1px solid var(--dsr-line); }
+    .device-key-grid.head { color:var(--dsr-muted); background:var(--dsr-bg-2); font-size:11px; font-weight:750; }
+    .device-key-grid code { display:block; min-width:0; overflow-x:auto; white-space:nowrap; padding:7px 9px; border:1px solid var(--dsr-line); border-radius:8px; background:var(--dsr-bg); font-size:11px; }
+    .device-key-note { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .device-key-note button { margin-left:5px; padding:1px 6px; }
+    .device-key-actions { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+    .device-key-actions .mini-btn { padding:5px 7px; font-size:11px; }
+    .device-key-ip { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:11px; white-space:nowrap; }
+    .device-key-empty { padding:16px; color:var(--dsr-muted); font-size:12px; text-align:center; }
+    .gateway-port-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; padding: 10px 12px; background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); }
+    .gateway-port-row label { font-size: 12px; color: var(--dsr-muted); flex: none; }
+    .gateway-port-row input { width: 92px; background: var(--dsr-bg); color: var(--dsr-text); border: 1px solid var(--dsr-line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 13px; outline: none; }
+    .gateway-port-row .muted { font-size: 12px; }
+    .gateway-port-row .mini-btn { margin-left: auto; }
+    .host-ip-card { margin: 0 0 14px; padding: 18px; background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); }
+    .host-ip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .host-ip-title { font-size: 16px; font-weight: 750; }
+    .host-ip-head .muted { margin-top: 4px; font-size: 12px; }
+    .host-ip-badge { flex: none; padding: 5px 9px; border: 1px solid var(--dsr-accent-line); border-radius: 999px; color: var(--dsr-accent-strong); background: var(--dsr-accent-soft); font-size: 11px; font-weight: 700; }
+    .host-ip-head-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+    .host-ip-remove { margin-left: 8px; padding: 3px 7px; }
+    .host-ip-desc { margin: 12px 0; color: var(--dsr-muted); font-size: 12px; line-height: 1.55; }
+    .host-ip-table-wrap { overflow: hidden; border: 1px solid var(--dsr-line); border-radius: 13px; }
+    .host-ip-table { width: 100%; border-collapse: collapse; }
+    .host-ip-table th, .host-ip-table td { padding: 10px 12px; border-bottom: 1px solid var(--dsr-divider); text-align: left; font-size: 12px; }
+    .host-ip-table th { color: var(--dsr-muted); background: var(--dsr-bg-2); font-size: 11px; font-weight: 750; }
+    .host-ip-table tr:last-child td { border-bottom: none; }
+    .host-ip-toggle { width: 74px; }
+    .host-ip-value { font-size: 13px !important; }
+    .host-ip-use { color: var(--dsr-muted); }
+    .host-ip-switch { position: relative; display: inline-block; width: 38px; height: 22px; vertical-align: middle; }
+    .host-ip-switch input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .host-ip-switch span { position: absolute; inset: 0; border: 1px solid var(--dsr-line); border-radius: 999px; background: var(--dsr-bg-2); cursor: pointer; transition: background-color .18s ease, border-color .18s ease; }
+    .host-ip-switch span::after { content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px; border-radius: 50%; background: var(--dsr-muted); transition: transform .18s ease, background-color .18s ease; }
+    .host-ip-switch input:checked + span { border-color: var(--dsr-accent-line); background: var(--dsr-accent-soft); }
+    .host-ip-switch input:checked + span::after { transform: translateX(16px); background: var(--dsr-accent-strong); }
+    .host-ip-switch input:focus-visible + span { outline: 2px solid var(--dsr-accent-strong); outline-offset: 2px; }
+    .host-ip-empty { padding: 18px; color: var(--dsr-muted); text-align: center; font-size: 12px; }
+    .conn-badge { white-space: nowrap; }
+    #btn-close-drawer { white-space: nowrap; }
+    @media (max-width: 720px) {
+      .admin-title h1 { font-size: 16px; }
+      .admin-title .right { gap: 6px; }
+      #btn-close-drawer span { display: none; }
+      #btn-close-drawer { padding: 5px 9px; }
+      #btn-console span { display: none; }
+      #btn-console { padding: 5px 9px; }
+      .conn-badge { padding: 3px 7px; }
+    }
+    @media (max-width: 760px) {
+      .table-wrap { overflow: visible; background: transparent; border: none; }
+      .table-wrap table { min-width: 0; }
+      .table-wrap thead { display: none; }
+      .table-wrap tbody { display: flex; flex-direction: column; gap: 8px; }
+      .table-wrap tr { display: block; background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: 12px; padding: 10px 12px; }
+      .table-wrap tr:last-child td { border-bottom: none; }
+      .table-wrap td { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px dashed var(--dsr-divider); }
+      .table-wrap td:last-child { border-bottom: none; }
+      .table-wrap td[data-label]::before { content: attr(data-label); min-width: 64px; font-size: 11px; color: var(--dsr-muted); flex: none; }
+      .table-wrap td.ua { display: none; }
+      .table-wrap td.act { justify-content: flex-end; }
+      .table-wrap td .mini-btn { margin-left: auto; }
+    }
+    .pair-box { background: var(--dsr-panel); border: 1px solid var(--dsr-line); border-radius: var(--dsr-radius); padding: 14px; margin-bottom: 14px; text-align: center; }
+    .pair-box .pair-title { font-weight: 600; margin-bottom: 8px; }
+    .pair-qr { display: inline-block; background: #fff; border-radius: 8px; padding: 6px; line-height: 0; }
+    .pair-qr svg { display: block; width: 180px; height: 180px; }
+    .pair-box .muted { margin-top: 8px; font-size: 12px; }
+    .empty { text-align: center; color: var(--dsr-muted); padding: 30px 0; }
+    .empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+    a.mini-btn { text-decoration: none; display: inline-flex; align-items: center; }
+    .gh-btn { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--dsr-text); }
+    .gh-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .admin-title .left { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; }
+    .admin-title .right { display: flex; align-items: center; gap: 8px; flex: 0 1 auto; min-width: 0; justify-content: flex-end; }
+    /* 顶栏按钮统一高度/基线: GitHub / 反馈 / 主题 / 语言 / 连接徽章 */
+    .tb-btn {
+      height: 36px; box-sizing: border-box; max-width: 100%;
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 0 12px; line-height: 1; vertical-align: middle;
+      flex-shrink: 0; white-space: nowrap;
+    }
+    .tb-btn svg { flex-shrink: 0; }
+    .conn-badge.tb-btn { border-radius: 999px; font-size: 12px; }
+    .fb-wrap { position: relative; flex-shrink: 0; }
+    .fb-btn { display: inline-flex; align-items: center; gap: 6px; justify-content: center; }
+    .fb-btn svg { width: 17px; height: 17px; }
+    .fb-menu {
+      position: absolute; right: 0; top: calc(100% + 8px); z-index: 50;
+      width: 248px; background: var(--dsr-bg-2); border: 1px solid var(--dsr-line); border-radius: 14px;
+      box-shadow: 0 12px 34px var(--dsr-shadow); padding: 6px;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .fb-item {
+      min-height: 44px; display: flex; align-items: center; gap: 10px;
+      padding: 7px 8px; border-radius: 10px; border: none; background: transparent; color: var(--dsr-text);
+      font: inherit; font-size: 13px; text-align: left; cursor: pointer; text-decoration: none;
+    }
+    .fb-item:hover, .fb-item:focus-visible { background: var(--dsr-bg); }
+    .fb-item.primary { background: var(--dsr-accent-soft); border: 1px solid var(--dsr-accent-line); }
+    .fb-ico {
+      width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+      display: grid; place-items: center; background: var(--dsr-panel); border: 1px solid var(--dsr-line); color: var(--dsr-accent-strong);
+    }
+    .fb-item.primary .fb-ico { background: var(--dsr-accent-strong); border-color: var(--dsr-accent-strong); color: var(--dsr-on-accent); }
+    .fb-ico svg { width: 16px; height: 16px; fill: currentColor; }
+    .fb-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .fb-name { font-weight: 600; }
+    .fb-desc { font-size: 11px; color: var(--dsr-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* 窄屏压缩顶栏: 图标化文字按钮, 保证全部按钮完整可见 */
+    @media (max-width: 900px) {
+      .gh-label, .t-label { display: none; }
+      .tb-btn { padding: 0 10px; }
+      .admin-title .right { gap: 6px; }
+      .admin-title .left { gap: 6px; }
+    }
+    @media (max-width: 720px) {
+      #btn-console span, #btn-close-drawer span { display: none; }
+      #btn-console, #btn-close-drawer { padding: 0 9px; }
+      .admin-title h1 { font-size: 17px; }
+    }
+    @media (max-width: 440px) {
+      .admin-title h1 { display: none; }
+      .admin-title .right { gap: 4px; }
+      .tb-btn { padding: 0 8px; }
+    }
+    .login-card input:focus-visible, .gateway-port-row input:focus-visible {
+      outline: 2px solid var(--dsr-accent);
+      outline-offset: 2px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    /* 控制台面板：减少整面纯色，建立“工具台”层次 */
+    html, body { font-family: system-ui, -apple-system, "PingFang SC", "Noto Sans CJK SC", sans-serif; text-rendering: optimizeLegibility; }
+    body { background: radial-gradient(900px 520px at 92% -12%, var(--dsr-accent-soft), transparent 68%), linear-gradient(180deg, var(--dsr-bg), var(--dsr-bg-2)); }
+    .admin-wrap { max-width: 1320px; padding: calc(env(safe-area-inset-top, 0px) + 18px) clamp(14px, 3vw, 30px) 48px; }
+    .admin-title { margin-bottom: 18px; padding: 12px 14px; border: 1px solid var(--dsr-line); border-radius: 18px; background: linear-gradient(135deg, var(--dsr-panel), var(--dsr-bg-2)); box-shadow: 0 14px 36px var(--dsr-shadow); backdrop-filter: blur(16px); }
+    .admin-title h1 { font-size: 21px; letter-spacing: -.2px; }
+    .admin-title .left, .admin-title .right { gap: 7px; }
+    .tb-btn { border-radius: 11px; background: linear-gradient(135deg, var(--dsr-panel-2), var(--dsr-bg-2)); border-color: var(--dsr-line); transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+    .tb-btn:hover { transform: translateY(-1px); border-color: var(--dsr-accent-line); background: var(--dsr-accent-soft); }
+    .tb-btn svg { width: 17px; height: 17px; }
+    .login-card, .stat-card, .stats-chart, .table-wrap, .gateway-port-row, .host-ip-card, .pair-box { background: linear-gradient(145deg, var(--dsr-panel), var(--dsr-bg-2)); border-color: var(--dsr-line); border-radius: 18px; box-shadow: 0 12px 30px var(--dsr-shadow); }
+    .login-card { padding: 18px; }
+    .stat-grid { gap: 12px; }
+    .stat-card { padding: 15px 16px; box-shadow: inset 0 1px var(--dsr-divider), 0 10px 26px var(--dsr-shadow); }
+    .stat-card .v { font-size: 24px; font-variant-numeric: tabular-nums; }
+    .stats-dash { margin-top: 4px; }
+    .stats-chart { height: 210px; padding: 16px 18px 12px; }
+    .stats-bar .bars { border-radius: 9px 9px 3px 3px; box-shadow: 0 0 16px var(--dsr-glow); }
+    .section-head { margin: 18px 2px 9px; font-weight: 750; letter-spacing: .2px; }
+    .token-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 13px; margin: 0 0 14px; border: 1px solid var(--dsr-line); border-radius: 18px; background: linear-gradient(145deg, var(--dsr-panel), var(--dsr-bg-2)); box-shadow: 0 10px 28px var(--dsr-shadow); }
+    .token-row code { width: auto; min-width: 0; padding: 10px 12px; border-radius: 11px; background: var(--dsr-bg); border-color: var(--dsr-line); }
+    .token-actions { justify-content: flex-end; }
+    .token-actions .mini-btn { flex: 0 0 auto; border-radius: 10px; }
+    .gateway-port-row { padding: 12px 14px; }
+    .table-wrap { overflow: hidden; }
+    th, td { border-bottom-color: var(--dsr-divider); }
+    tbody tr { transition: background .18s ease; }
+    .pair-box { padding: 18px; }
+    .admin-hero { display:flex; align-items:flex-end; justify-content:space-between; gap:18px; padding:20px; margin:0 0 16px; border:1px solid var(--dsr-accent-line); border-radius:20px; background:linear-gradient(135deg, var(--dsr-panel-2), var(--dsr-bg-2)); box-shadow:0 16px 34px var(--dsr-shadow); }
+    .admin-hero-copy { min-width:0; }
+    .admin-eyebrow { color:var(--dsr-accent-strong); font-size:10px; font-weight:800; letter-spacing:1.6px; }
+    .admin-hero h2 { margin:7px 0 4px; font-size:26px; line-height:1.15; letter-spacing:-.5px; }
+    .admin-hero p { margin:0; color:var(--dsr-muted); font-size:12px; }
+    .admin-hero-side { display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex:none; }
+    .admin-hero-status { color:var(--dsr-success); font-size:12px; font-weight:700; }
+    .admin-hero.attention { border-color:var(--dsr-warning-line); }
+    .admin-hero.attention .admin-hero-status { color:var(--dsr-warning); }
+    .admin-hero.plugin, .admin-hero.offline { border-color:var(--dsr-line); }
+    .admin-hero.plugin .admin-hero-status, .admin-hero.offline .admin-hero-status { color:var(--dsr-muted); }
+    .admin-hero-action { min-height:36px; padding:7px 13px; border-color:var(--dsr-accent-strong); background:var(--dsr-accent-strong); color:var(--dsr-on-accent); font-weight:700; }
+    .admin-hero.plugin .admin-hero-action { border-color:var(--dsr-accent-strong); background:var(--dsr-accent-strong); }
+    .admin-hero.offline .admin-hero-action { border-color:var(--dsr-accent-line); background:var(--dsr-accent-soft); color:var(--dsr-accent-strong); }
+    .doctor-card { margin:0 0 16px; border:1px solid var(--dsr-line); border-radius:20px; background:linear-gradient(145deg,var(--dsr-panel),var(--dsr-bg-2)); box-shadow:0 12px 30px var(--dsr-shadow); overflow:hidden; }
+    .doctor-head { width:100%; display:flex; align-items:center; gap:12px; padding:14px 16px; border:0; background:transparent; color:var(--dsr-text); text-align:left; cursor:pointer; font:inherit; }
+    .doctor-head:focus-visible { outline:2px solid var(--dsr-accent-strong); outline-offset:-3px; }
+    .doctor-title { min-width:0; flex:1; }
+    .doctor-title strong { display:block; font-size:14px; }
+    .doctor-title span { display:block; margin-top:3px; color:var(--dsr-muted); font-size:11px; line-height:1.45; }
+    .doctor-progress { flex:none; padding:4px 9px; border:1px solid var(--dsr-accent-line); border-radius:999px; color:var(--dsr-accent-strong); background:var(--dsr-accent-soft); font-size:11px; font-weight:750; }
+    .doctor-chevron { flex:none; color:var(--dsr-muted); transition:transform .18s ease; }
+    .doctor-card.expanded .doctor-chevron { transform:rotate(180deg); }
+    .doctor-body { display:none; padding:0 16px 16px; }
+    .doctor-card.expanded .doctor-body { display:block; }
+    .doctor-summary { margin:0 0 10px; padding:9px 11px; border-radius:11px; color:var(--dsr-muted); background:var(--dsr-bg); font-size:12px; line-height:1.5; }
+    .doctor-summary.ok { color:var(--dsr-success); background:var(--dsr-success-soft); }
+    .doctor-steps { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .doctor-step { display:grid; grid-template-columns:24px minmax(0,1fr) auto; gap:9px; align-items:start; padding:11px; border:1px solid var(--dsr-line); border-radius:13px; background:var(--dsr-panel-2); }
+    .doctor-mark { width:22px; height:22px; display:grid; place-items:center; border-radius:50%; color:var(--dsr-muted); background:var(--dsr-bg); font-size:12px; font-weight:800; }
+    .doctor-step.pass .doctor-mark { color:var(--dsr-success); background:var(--dsr-success-soft); }
+    .doctor-step.fail .doctor-mark { color:var(--dsr-error); background:var(--dsr-error-soft); }
+    .doctor-step.warn .doctor-mark { color:var(--dsr-warning); background:var(--dsr-warning-soft); }
+    .doctor-copy { min-width:0; }
+    .doctor-copy strong { display:block; font-size:12px; }
+    .doctor-copy span { display:block; margin-top:3px; color:var(--dsr-muted); font-size:11px; line-height:1.45; overflow-wrap:anywhere; }
+    .doctor-action { align-self:center; padding:5px 8px; font-size:11px; }
+    .doctor-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; color:var(--dsr-muted); font-size:11px; }
+    .doctor-foot-actions { display:flex; gap:7px; flex-wrap:wrap; }
+    #stats { grid-template-columns:repeat(4,minmax(0,1fr)); }
+    #stats .stat-card:nth-child(n+5) { background:transparent; box-shadow:none; }
+    #stats .stat-card:nth-child(n+5) .v { font-size:20px; }
+    @media (max-width: 760px) {
+      .admin-hero { align-items:stretch; flex-direction:column; gap:14px; padding:16px; }
+      .admin-hero h2 { font-size:23px; }
+      .admin-hero-side { align-items:stretch; flex-direction:row; justify-content:space-between; }
+      .admin-hero-action { flex:0 0 auto; }
+      .doctor-steps { grid-template-columns:1fr; }
+      #stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      #stats .stat-card:nth-child(n+5) { background:linear-gradient(145deg, var(--dsr-panel), var(--dsr-bg-2)); box-shadow:inset 0 1px var(--dsr-divider), 0 10px 26px var(--dsr-shadow); }
+    }
+    @media (max-width: 720px) {
+      .token-row { display: flex; flex-direction: column; align-items: stretch; }
+      .token-actions { justify-content: stretch; }
+      .token-actions .mini-btn { flex: 1 1 auto; }
+      .host-ip-card { padding: 15px; }
+      .host-ip-table-wrap { overflow-x: auto; }
+      .host-ip-table { min-width: 360px; }
+      .device-key-toggle { align-items:flex-start; }
+      .device-key-toggle-actions { align-items:flex-end; flex-direction:column-reverse; }
+      .device-key-grid.head { display:none; }
+      .device-key-grid { grid-template-columns:1fr; gap:7px; padding:12px; }
+      .device-key-grid > *::before { content:attr(data-label); display:block; margin-bottom:3px; color:var(--dsr-muted); font:700 10px/1.3 system-ui,sans-serif; }
+      .device-key-actions { justify-content:stretch; }
+      .device-key-actions .mini-btn { flex:1 1 calc(50% - 6px); }
+    }
+    @media (max-width: 900px) {
+      .admin-title { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 10px; }
+      .admin-title .left { min-width: 0; }
+      .admin-title .right { grid-column: 1 / -1; justify-content: flex-start; min-width: 0; flex-wrap: wrap; overflow: visible; }
+    }
+    @media (max-width: 440px) {
+      .admin-title h1 { display: block; min-width: 0; overflow: visible; font-size: 18px; }
+      .admin-title .left { gap: 7px; }
+    }
+  </style>
+  <link rel="stylesheet" href="../remote-ui.css">
+</head>
+<body>
+  <div class="admin-wrap">
+    <div class="admin-title">
+      <div class="left">
+        <a id="btn-console" class="mini-btn tb-btn" href="../" data-i18n-title="consoleTitle">‹ <span data-i18n="console">控制台</span></a>
+        <a id="btn-plugin-panel" class="mini-btn tb-btn hidden" href="../plugin.html" data-i18n-title="pluginPanel">‹ <span data-i18n="pluginPanel">状态面板</span></a>
+        <button id="btn-close-drawer" class="mini-btn tb-btn hidden" data-i18n-title="collapse">‹ <span data-i18n="collapse">收起面板</span></button>
+        <h1>DSH Remote <span data-i18n="admin">管理</span></h1>
+      </div>
+      <div class="right">
+        <button id="btn-ai-doctor" type="button" class="mini-btn tb-btn">AI 排查问题</button>
+        <a class="mini-btn gh-btn tb-btn" href="https://github.com/Blank-not-black/dsh-Remote" target="_blank" rel="noopener" title="GitHub" data-i18n-aria="repo">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8.01 8.01 0 0 0 5.47 7.59c.4.08.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>
+          <span class="gh-label" data-i18n="repo">仓库</span>
+        </a>
+        <button id="btn-donate" class="mini-btn tb-btn" data-i18n-title="donateTitle" data-i18n-aria="donateTitle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h11v6a4 4 0 0 1-4 4H10a4 4 0 0 1-4-4Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17M9 4c0 1 1 1.2 1 2M13 4c0 1 1 1.2 1 2M5 20h13"/></svg></button>
+        <div class="fb-wrap">
+          <button id="btn-feedback" class="mini-btn fb-btn tb-btn" data-i18n-title="feedbackTitle" data-i18n-aria="feedbackTitle" aria-haspopup="menu" aria-expanded="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-8 8H5l-1.5 2L4 20a8 8 0 0 1-1-4 8 8 0 0 1 18-4Z"/></svg>
+          </button>
+          <div id="fb-menu" class="fb-menu hidden" role="menu" data-i18n-aria="feedbackTitle">
+            <a class="fb-item primary" href="https://github.com/Blank-not-black/dsh-Remote" target="_blank" rel="noopener" role="menuitem">
+              <span class="fb-ico"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8a8.01 8.01 0 0 0 5.47 7.59c.4.08.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></span>
+              <span class="fb-body"><span class="fb-name">GitHub</span><span class="fb-desc" data-i18n="feedback.githubDesc">反馈 bug / 提建议</span></span>
+            </a>
+            <a class="fb-item" href="https://gitee.com/Blankneverfails/dsh-Remote" target="_blank" rel="noopener" role="menuitem">
+              <span class="fb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M7.5 13.5 7 19a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l-.5-5.5"/><circle cx="10" cy="8.6" r=".5" fill="currentColor" stroke="none"/><circle cx="14" cy="8.6" r=".5" fill="currentColor" stroke="none"/><path d="M11 10.8c.6.5 1.4.5 2 0"/></svg></span>
+              <span class="fb-body"><span class="fb-name">Gitee</span><span class="fb-desc" data-i18n="feedback.giteeDesc">国内镜像，无需代理</span></span>
+            </a>
+            <a class="fb-item" href="https://space.bilibili.com/419009275/dynamic" target="_blank" rel="noopener" role="menuitem">
+              <span class="fb-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6" width="17" height="11" rx="2"/><path d="M8.5 3.5v3M15.5 3.5v3"/><circle cx="9.2" cy="10.6" r=".5" fill="currentColor" stroke="none"/><circle cx="14.8" cy="10.6" r=".5" fill="currentColor" stroke="none"/><path d="M9.5 14c1.4 1 3.6 1 5 0"/></svg></span>
+              <span class="fb-body"><span class="fb-name">B站</span><span class="fb-desc" data-i18n="feedback.biliDesc">UP 动态页交流</span></span>
+            </a>
+          </div>
+        </div>
+        <button id="btn-theme" class="mini-btn tb-btn" title="">
+          <span id="theme-swatch" class="theme-swatch-dot"></span><span id="theme-label" class="t-label">默认深空</span>
+        </button>
+        <button id="btn-lang" class="mini-btn tb-btn" title="Language / 语言">EN</button>
+        <button id="conn-badge" class="conn-badge tb-btn off" title="网关面板"><span data-i18n="unauth">未认证</span></button>
+      </div>
+    </div>
+
+    <div id="login-view" class="login-card hidden" data-motion-view>
+      <input id="token-input" name="gateway-token" type="password" placeholder="输入网关访问令牌" autocomplete="off" aria-label="网关访问令牌" data-i18n-placeholder="tokenPlaceholder" data-i18n-aria="tokenPlaceholder">
+      <button id="btn-login" class="mini-btn" data-i18n="enter">进入</button>
+    </div>
+
+    <div id="main-view" class="hidden" data-motion-view>
+      <section id="admin-hero" class="admin-hero" aria-live="polite">
+        <div class="admin-hero-copy">
+          <div class="admin-eyebrow" data-i18n="hero.eyebrow">GATEWAY CONTROL</div>
+          <h2 id="admin-hero-title">正在检查网关</h2>
+          <p id="admin-hero-desc">读取运行状态与上游连接</p>
+        </div>
+        <div class="admin-hero-side">
+          <span id="admin-hero-status" class="admin-hero-status">—</span>
+          <button id="admin-hero-action" class="mini-btn admin-hero-action" type="button" data-i18n="hero.openDevices">查看设备</button>
+        </div>
+      </section>
+
+      <div id="admin-setup"></div>
+
+      <section id="doctor-card" class="doctor-card" aria-live="polite">
+        <div class="remote-ai-diagnosis">
+          <div><strong>AI 排查插件问题</strong><p class="muted">使用你的 DSH 和模型，新建独立会话收集只读证据。</p></div>
+          <button id="admin-doctor" type="button" class="remote-primary">AI 排查问题</button>
+        </div>
+        <button id="doctor-toggle" class="doctor-head" type="button" aria-expanded="false" aria-controls="doctor-body">
+          <span class="doctor-title"><strong data-i18n="doctor.title">连接诊断 · Doctor</strong><span id="doctor-subtitle">正在检查连接链路</span></span>
+          <span id="doctor-progress" class="doctor-progress">0/6</span>
+          <span class="doctor-chevron" aria-hidden="true">⌄</span>
+        </button>
+        <div id="doctor-body" class="doctor-body">
+          <div id="doctor-summary" class="doctor-summary">正在读取诊断结果…</div>
+          <div id="doctor-steps" class="doctor-steps"></div>
+          <div class="doctor-foot">
+            <span data-i18n="doctor.security">安全提示：只在可信局域网或 Tailscale 中开放网关端口，不要把令牌公开。</span>
+            <span class="doctor-foot-actions">
+              <button id="doctor-copy-report" class="mini-btn" type="button" data-i18n="doctor.copyReport">复制诊断</button>
+              <button id="doctor-refresh" class="mini-btn" type="button" data-i18n="doctor.refresh">重新检查</button>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <div class="device-key-card">
+        <div id="device-key-toggle" class="device-key-toggle hidden">
+          <div class="device-key-toggle-copy">
+            <div class="device-key-toggle-title" data-i18n="deviceKeys.title">独立设备密钥</div>
+            <div class="device-key-toggle-desc" data-i18n="deviceKeys.desc">开启后每台设备使用独立令牌，可单独轮换或退出；原共享令牌仅用于网关管理。</div>
+          </div>
+          <div class="device-key-toggle-actions">
+            <button id="btn-gateway" class="mini-btn hidden" data-i18n="startGateway">启动网关</button>
+            <button id="btn-device-key-add" class="mini-btn hidden" type="button" data-i18n="deviceKeys.add">添加设备</button>
+            <label class="device-key-switch" title="独立设备密钥">
+              <input id="device-key-enabled" type="checkbox" role="switch" aria-label="独立设备密钥">
+              <span aria-hidden="true"></span>
+            </label>
+            <button id="btn-logout" class="mini-btn" data-i18n="signOut">退出</button>
+          </div>
+        </div>
+        <div id="shared-token-row" class="token-row">
+          <code id="token-full">—</code>
+          <div class="token-actions">
+            <button id="btn-qr" class="mini-btn hidden" data-i18n="qrCode">二维码</button>
+            <button id="btn-rotate" class="mini-btn hidden" data-i18n="rotateToken">轮换令牌</button>
+            <button id="btn-copy" class="mini-btn" data-i18n="copyToken">复制令牌</button>
+          </div>
+        </div>
+        <div id="device-key-panel" class="device-key-panel hidden">
+          <div class="device-key-grid head">
+            <span data-i18n="deviceKeys.note">备注内容</span>
+            <span data-i18n="deviceKeys.ip">IP</span>
+            <span>Token</span>
+            <span></span>
+          </div>
+          <div id="device-key-rows"></div>
+          <div id="device-key-empty" class="device-key-empty hidden" data-i18n="deviceKeys.empty">暂无设备密钥</div>
+        </div>
+      </div>
+
+      <div id="gateway-port-row" class="gateway-port-row hidden">
+        <label for="gateway-port-input" data-i18n="gatewayPort">网关端口</label>
+        <input id="gateway-port-input" name="gateway-port" type="number" min="1" max="65535" inputmode="numeric" autocomplete="off" placeholder="8787">
+        <span id="gateway-port-current" class="muted">—</span>
+        <button id="btn-save-port" class="mini-btn" data-i18n="savePort">保存</button>
+      </div>
+
+      <section class="gateway-port-row" aria-labelledby="login-startup-title">
+        <div style="flex:1;min-width:200px">
+          <strong id="login-startup-title" data-i18n="startup.title">登录后自动运行网关</strong>
+          <p class="muted" data-i18n="startup.hint">Windows 登录后在后台运行网关，未打开 DSH 时也能连接中转并远程启动 DSH。电脑需保持开机联网。</p>
+          <p id="login-startup-status" class="muted" role="status" aria-live="polite"></p>
+        </div>
+        <button id="btn-login-startup" class="mini-btn" type="button" disabled data-i18n="startup.enable">开启自启</button>
+        <button id="btn-login-startup-repair" class="mini-btn hidden" type="button" data-i18n="startup.repair">修复自启</button>
+        <button id="btn-login-startup-refresh" class="mini-btn" type="button" data-i18n="startup.refresh">刷新状态</button>
+      </section>
+      <div id="relay-settings"></div>
+      <section id="host-ip-card" class="host-ip-card" aria-live="polite">
+        <div class="host-ip-head">
+          <div>
+            <div class="host-ip-title" data-i18n="hostIPs.title">主机 IP 地址</div>
+            <div id="host-ip-summary" class="muted" data-i18n="hostIPs.loading">正在读取主机地址…</div>
+          </div>
+          <div class="host-ip-head-actions">
+            <button id="btn-host-ip-add" class="mini-btn" type="button" data-i18n="hostIPs.add">添加宿主地址</button>
+            <div class="host-ip-badge" data-i18n="hostIPs.badge">手机连接候选</div>
+          </div>
+        </div>
+        <div class="host-ip-desc" data-i18n="hostIPs.desc">关闭虚拟机、容器或其他无效地址后，它们不会再写入配对二维码，也不会作为诊断和防火墙建议地址。</div>
+        <div class="host-ip-table-wrap">
+          <table class="host-ip-table">
+            <thead><tr><th data-i18n="hostIPs.enabledColumn">启用</th><th data-i18n="hostIPs.addressColumn">主机 IP</th><th data-i18n="hostIPs.statusColumn">状态</th></tr></thead>
+            <tbody id="host-ip-rows"></tbody>
+          </table>
+          <div id="host-ip-empty" class="host-ip-empty hidden" data-i18n="hostIPs.empty">暂无可用的非回环地址</div>
+        </div>
+      </section>
+
+      <div id="pair-box" class="pair-box hidden">
+        <div class="pair-title" data-i18n="pairTitle">手机 App 扫码配对</div>
+        <div class="pair-qr" id="pair-qr"></div>
+        <div class="muted" id="pair-hint"></div>
+      </div>
+
+      <div class="stat-grid" id="stats"></div>
+
+      <div class="section-head"><span data-i18n="devices">已连接设备</span><span id="device-summary" class="muted"></span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-i18n="th.status">状态</th><th data-i18n="th.name">名称</th><th data-i18n="th.type">类型</th>
+            <th data-i18n="th.ip">IP</th><th data-i18n="th.channels">通道</th><th data-i18n="th.requests">请求</th>
+            <th data-i18n="th.lastSeen">最后活跃</th><th data-i18n="th.ua">UA</th><th></th>
+          </tr></thead>
+          <tbody id="device-rows"></tbody>
+        </table>
+        <div id="device-empty" class="empty hidden" data-i18n="noDevices">暂无设备记录</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 皮肤选择模态 -->
+  <div id="modal-theme" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-title" data-i18n="theme.panelTitle">选择配色</div>
+      <div id="theme-options" class="theme-panel-list"></div>
+      <div class="modal-actions">
+        <button id="theme-close" class="btn subtle" data-i18n="theme.close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 赞赏支持模态 -->
+  <div id="modal-donate" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-title" data-i18n="donateTitle">赞赏支持</div>
+      <div class="modal-body donate-body">
+        <img src="../donate.png" alt="赞赏二维码" width="1152" height="1152" class="donate-img" style="display:block;margin:0 auto;max-width:100%;height:auto;max-height:60vh;border-radius:12px">
+        <p class="donate-thanks" data-i18n="donateThanks" style="text-align:center;margin-top:12px">感谢你的支持 ☕</p>
+      </div>
+      <div class="modal-actions">
+        <button id="donate-close" class="btn subtle" data-i18n="theme.close">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+  <script>
+    window.ADMIN_STR = {
+      zh: {
+        'console': '控制台',
+        'consoleTitle': '返回控制台',
+        'pluginPanel': '状态面板',
+        'collapse': '收起面板',
+        'admin': '管理',
+        'hero.eyebrow': 'GATEWAY CONTROL', 'hero.running': '网关运行正常', 'hero.attention': '网关需要关注', 'hero.plugin': 'DSH 插件已连接', 'hero.offline': '网关未运行', 'hero.checking': '正在检查网关',
+        'hero.runningDesc': '{online} 台设备在线 · {requests} 次请求', 'hero.attentionDesc': 'DSH 上游暂时不可达，请打开诊断', 'hero.pluginDesc': '插件已连接 DSH，网关可按需启动', 'hero.offlineDesc': '启动网关后即可接受 App 和桌面端连接', 'hero.openDevices': '查看设备', 'hero.startGateway': '启动网关', 'hero.copyToken': '复制令牌',
+        'doctor.title': '连接诊断 · Doctor', 'doctor.checking': '正在检查连接链路', 'doctor.ready': '连接条件已就绪', 'doctor.needsWork': '还有 {n} 项需要处理',
+        'doctor.allGood': '所有关键检查均已通过，手机端可以稳定连接。', 'doctor.partial': '按顺序处理未通过项；页面每 5 秒自动复查。',
+        'doctor.security': '安全提示：只在可信局域网或 Tailscale 中开放网关端口，不要把令牌公开。', 'doctor.copyReport': '复制诊断', 'doctor.refresh': '重新检查',
+        'doctor.dsh': 'DSH 服务', 'doctor.dshPass': 'DSH 上游可访问', 'doctor.dshFail': 'DSH 上游不可达，请先启动或重启 DSH Web',
+        'doctor.gateway': '远程网关', 'doctor.gatewayPass': '网关正在 {host}:{port} 监听', 'doctor.gatewayFail': '网关尚未运行',
+        'doctor.network': '局域网地址', 'doctor.networkPass': '手机可填写 {base}', 'doctor.networkFail': '未发现可供手机访问的 IPv4 地址',
+        'doctor.firewall': '主机防火墙', 'doctor.firewallPass': '已有非管理设备成功接入，入站链路已验证', 'doctor.firewallWarn': '无法无权限确认规则；只对可信网络放行 TCP {port}',
+        'doctor.device': '终端配对', 'doctor.devicePass': '{n} 台 App / WebUI 在线', 'doctor.deviceWait': '扫码配对后，本项会自动变为通过',
+        'doctor.realtime': '实时消息通道', 'doctor.realtimePass': 'mux 与 host 通道均已连接', 'doctor.realtimeFail': '实时通道未全部建立；可先使用轮询，检查 DSH 后会自动恢复',
+        'doctor.start': '启动', 'doctor.showQr': '显示二维码', 'doctor.copyAddress': '复制地址', 'doctor.copyCommand': '复制命令',
+        'doctor.reportCopied': '诊断报告已复制', 'doctor.commandCopied': '防火墙命令已复制，请确认网络范围后手动执行', 'doctor.addressCopied': '服务器地址已复制',
+        'theme.default': '默认深空', 'theme.dark': '落日', 'theme.light': '易北爱乐厅', 'theme.neutral': '草原孤塔', 'theme.mono': '黑曜白', 'theme.fish': '蓝色大肥鱼',
+        'theme.panelTitle': '选择配色', 'theme.close': '关闭',
+        'repo': '仓库',
+        'donateTitle': '赞赏支持', 'donateThanks': '感谢你的支持 ☕',
+        'feedbackTitle': '反馈渠道',
+        'feedback.githubDesc': '反馈 bug / 提建议', 'feedback.giteeDesc': '国内镜像，无需代理', 'feedback.biliDesc': 'UP 动态页交流',
+        'unauth': '未认证',
+        'tokenPlaceholder': '输入网关访问令牌',
+        'enter': '进入',
+        'startup.title': '登录后自动运行网关',
+        'startup.hint': 'Windows 登录后在后台运行网关，未打开 DSH 时也能连接中转并远程启动 DSH。电脑需保持开机联网。',
+        'startup.enable': '开启自启', 'startup.disable': '关闭自启', 'startup.busy': '正在更新…',
+        'startup.on': '已开启 · 当前 Windows 用户登录后生效', 'startup.off': '未开启',
+        'startup.unsupported': '当前仅支持 Windows 登录自启', 'startup.unavailable': '无法读取自启状态，请先启动网关或升级 Remote 后刷新',
+        'startup.broken': '自启配置需要修复，请点击重新开启', 'startup.conflict': '存在其他启动配置，请在主机上检查',
+        'startup.savedOn': '已开启登录自启', 'startup.savedOff': '已关闭登录自启，当前网关继续运行',
+        'startup.repair': '修复自启', 'startup.refresh': '刷新状态',
+        'startGateway': '启动网关',
+        'stopGateway': '停止网关',
+        'starting': '启动中…',
+        'stopping': '停止中…',
+        'gatewayPort': '网关端口',
+        'gatewayPort.current': '当前 {port}',
+        'savePort': '保存',
+        'toast.portInvalid': '端口必须是 1-65535 的整数',
+        'toast.portSaved': '端口已更新，网关已切换至 {port}',
+        'toast.portSavedIdle': '端口已保存，网关未运行，下次启动生效',
+        'toast.portEnv': '环境变量优先，当前仍使用 {port}',
+        'toast.portFailedMsg': '端口保存失败：{msg}',
+        'qrCode': '二维码',
+        'rotateToken': '轮换令牌',
+        'copyToken': '复制令牌',
+        'signOut': '退出',
+        'deviceKeys.title': '独立设备密钥', 'deviceKeys.desc': '开启后每台设备使用独立令牌，可单独轮换或退出；原共享令牌仅用于网关管理。',
+        'deviceKeys.add': '添加设备', 'deviceKeys.note': '备注内容', 'deviceKeys.ip': 'IP', 'deviceKeys.empty': '暂无设备密钥',
+        'deviceKeys.neverUsed': '尚未连接', 'deviceKeys.edit': '修改', 'deviceKeys.revoke': '退出',
+        'deviceKeys.enableConfirm': '开启后，当前手机和浏览器使用的共享令牌会失效，需要使用设备二维码重新配对。继续？',
+        'deviceKeys.disableConfirm': '关闭后，所有独立设备令牌会停止工作，需要重新使用共享令牌。继续？',
+        'deviceKeys.revokeConfirm': '让这个设备退出？该设备令牌会立即失效。',
+        'deviceKeys.rotateConfirm': '轮换这个设备的令牌？该设备会立即断开，需要重新扫码。',
+        'deviceKeys.notePrompt': '设备备注内容',
+        'deviceKeys.enabled': '独立设备密钥已开启，请使用设备二维码重新配对',
+        'deviceKeys.disabled': '独立设备密钥已关闭，客户端改用共享令牌',
+        'deviceKeys.created': '已创建设备密钥', 'deviceKeys.saved': '设备备注已保存',
+        'deviceKeys.rotated': '设备令牌已轮换', 'deviceKeys.revoked': '设备已退出',
+        'deviceKeys.failed': '设备密钥操作失败：{msg}',
+        'pairTitle': '手机 App 扫码配对',
+        'devices': '已连接设备',
+        'noDevices': '暂无设备记录',
+        'th.status': '状态', 'th.name': '名称', 'th.type': '类型', 'th.ip': 'IP',
+        'th.channels': '通道', 'th.requests': '请求', 'th.lastSeen': '最后活跃', 'th.ua': 'UA',
+        'badge.embedded': '内嵌', 'badge.gateway': '网关', 'badge.connected': '已连接',
+        'badge.gateway.title': '新标签页打开网关管理面板', 'badge.gatewayDown': '网关未运行',
+        'token.pluginNoGateway': '插件模式 · 未接网关, 无需令牌', 'token.unavailable': '未获取到令牌',
+        'toast.tokenInvalid': '令牌无效', 'toast.connFailed': '连接失败', 'toast.authLayer': '登录代理拦截了管理 API，请检查 /remote/* 的认证规则',
+        'stat.pluginVersion': '插件版本', 'stat.gatewayVersion': '网关版本',
+        'stat.updateAvailable': '{version} 可用', 'stat.currentV': '当前 v{version}',
+        'stat.download': '去下载', 'stat.embedded': 'DSH 内嵌 · 免网关',
+        'stat.updateCheck': '更新检查: {error}', 'stat.latest': '已是最新(来源检查)', 'stat.notChecked': '未检查更新',
+        'stat.hostIP': '主机 IP · {hostname}', 'stat.ipSep': '、', 'stat.phoneGateway': ' (手机连 {port} 网关)', 'stat.phoneThis': ' (手机连这个地址)',
+        'hostIPs.title': '主机 IP 地址', 'hostIPs.badge': '手机连接候选', 'hostIPs.loading': '正在读取主机地址…', 'hostIPs.summary': '已启用 {enabled}/{total} 个地址', 'hostIPs.desc': '关闭虚拟机、容器或其他无效地址后，它们不会再写入配对二维码，也不会作为诊断和防火墙建议地址。Docker 中可手动添加宿主地址。', 'hostIPs.enabledColumn': '启用', 'hostIPs.addressColumn': '主机 IP', 'hostIPs.statusColumn': '状态', 'hostIPs.enabled': '已启用 · 会用于配对', 'hostIPs.disabled': '已关闭 · 不用于配对', 'hostIPs.enable': '切换此地址', 'hostIPs.empty': '暂无可用的非回环地址', 'hostIPs.keepOne': '至少保留一个可用地址', 'hostIPs.add': '添加宿主地址', 'hostIPs.addPrompt': '输入手机可访问的宿主 IP 或主机名：', 'hostIPs.invalid': '地址格式无效', 'hostIPs.exists': '该地址已在列表中', 'hostIPs.remove': '删除',
+        'stat.reachable': '可达', 'stat.unreachable': '不可达', 'stat.dshUpstream': 'DSH 上游 {url}',
+        'stat.devicesOnline': '设备在线 / 累计', 'stat.totalRequests': '总请求数', 'stat.authFailures': '认证失败',
+        'stat.uptime': '运行时长 · {host}:{port}',
+        'stats.title': 'Token、API 费用与 Plan 额度',
+        'stats.todayTokens': '今日 Token',
+        'stats.todayCost': '今日费用',
+        'stats.peakShare': '高峰占比',
+        'stats.input': '未缓存输入',
+        'stats.cacheRead': '缓存命中',
+        'stats.cacheWrite': '缓存写入',
+        'stats.output': '输出',
+        'stats.peak': '高峰', 'stats.off': '空闲',
+        'stats.days': '近 {n} 天',
+        'stats.gatewayDown': '统计需要网关运行', 'stats.empty': '暂无统计，产生会话后自动聚合',
+        'stats.note': '注：本数据仅在使用 DeepSeek 官方 API 时估算；基于 token 计算，与官网账单可能有出入，一切以官网为准。统计自 2026-08-17 定价生效日起。',
+        'unit.sec': ' 秒', 'unit.min': ' 分钟', 'unit.hour': ' 小时 ', 'unit.minShort': ' 分', 'unit.day': ' 天 ',
+        'device.installedNotRunning': '网关已安装 · 当前未运行', 'device.noGatewayBinary': '未检测到网关程序',
+        'device.ipRefresh': '{n} 个 IP · 每 5 秒刷新',
+        'device.downloadApp': '下载手机 App', 'device.downloadGateway': '下载网关 ({os})',
+        'device.noBinaryGuide': '本插件包未包含网关程序：下载对应系统的网关并运行',
+        'device.afterRunGuide': '运行网关后回到本页刷新，即可看到设备监控与完整令牌',
+        'device.installedGuide': '网关已随插件安装，当前未运行 — 点击上方「启动网关」开启',
+        'device.afterStartGuide': '启动后本页会自动刷新为网关模式（完整设备监控 + 令牌）',
+        'device.kind.app': '手机App', 'device.kind.admin': '管理页', 'device.kind.web': '浏览器', 'device.kind.unknown': '未知',
+        'device.online': '在线', 'device.offline': '离线', 'device.note': '备注', 'device.kick': '断开',
+        'prompt.note': '给 {ip} 设置备注（留空清除）：', 'toast.noteSaved': '备注已保存', 'toast.noteFailed': '保存失败',
+        'confirm.kick': '断开该设备的连接？', 'toast.kicked': '已断开 {ip}', 'toast.opFailed': '操作失败',
+        'toast.tokenCopied': '令牌已复制', 'toast.copyFailed': '复制失败，请手动选择',
+        'toast.gatewayDown': '网关未运行', 'toast.popupBlocked': '浏览器阻止了新窗口，请允许弹窗',
+        'confirm.rotate': '轮换后旧令牌立即失效，手机与浏览器都需要重新扫码/输入。继续？',
+        'toast.rotated': '令牌已轮换，请重新给设备配对', 'toast.rotateFailed': '轮换失败',
+        'toast.rotateFailedMsg': '轮换失败：{msg}',
+        'toast.gatewayStarted': '网关已启动', 'toast.gatewayAlready': '网关已在运行', 'toast.gatewayStopped': '网关已停止',
+        'toast.gatewayPending': '网关启动中，稍后刷新', 'toast.done': '已执行',
+        'toast.opFailedMsg': '操作失败：{msg}',
+        'pair.hint': '{base} · App「设置 → 扫码连接」，或系统相机扫一扫自动打开 App',
+        'pair.failed': '二维码生成失败',
+        'login.title': 'DSH Remote 管理'
+      },
+      en: {
+        'console': 'Console',
+        'consoleTitle': 'Back to console',
+        'pluginPanel': 'Status panel',
+        'collapse': 'Collapse panel',
+        'admin': 'Admin',
+        'hero.eyebrow': 'GATEWAY CONTROL', 'hero.running': 'Gateway is healthy', 'hero.attention': 'Gateway needs attention', 'hero.plugin': 'DSH plugin connected', 'hero.offline': 'Gateway is not running', 'hero.checking': 'Checking gateway',
+        'hero.runningDesc': '{online} devices online · {requests} requests', 'hero.attentionDesc': 'DSH upstream is unreachable; open diagnostics', 'hero.pluginDesc': 'The plugin is connected to DSH; start the gateway when needed', 'hero.offlineDesc': 'Start the gateway to accept App and desktop connections', 'hero.openDevices': 'View devices', 'hero.startGateway': 'Start gateway', 'hero.copyToken': 'Copy token',
+        'doctor.title': 'Connection diagnostics · Doctor', 'doctor.checking': 'Checking the connection path', 'doctor.ready': 'Ready to connect', 'doctor.needsWork': '{n} checks need attention',
+        'doctor.allGood': 'All critical checks passed. Mobile clients can connect.', 'doctor.partial': 'Resolve the checks in order. This page rechecks every 5 seconds.',
+        'doctor.security': 'Security: expose the gateway only to a trusted LAN or Tailscale, and never publish the token.', 'doctor.copyReport': 'Copy report', 'doctor.refresh': 'Recheck',
+        'doctor.dsh': 'DSH service', 'doctor.dshPass': 'DSH upstream is reachable', 'doctor.dshFail': 'DSH upstream is unreachable. Start or restart DSH Web first.',
+        'doctor.gateway': 'Remote gateway', 'doctor.gatewayPass': 'Listening on {host}:{port}', 'doctor.gatewayFail': 'Gateway is not running',
+        'doctor.network': 'LAN address', 'doctor.networkPass': 'Use {base} on the phone', 'doctor.networkFail': 'No IPv4 address available to the phone',
+        'doctor.firewall': 'Host firewall', 'doctor.firewallPass': 'A non-admin client connected, confirming inbound access', 'doctor.firewallWarn': 'Rules cannot be confirmed without privilege. Allow TCP {port} only on trusted networks.',
+        'doctor.device': 'Client pairing', 'doctor.devicePass': '{n} App / WebUI clients online', 'doctor.deviceWait': 'Scan the QR code; this check updates automatically',
+        'doctor.realtime': 'Realtime channels', 'doctor.realtimePass': 'Both mux and host channels are connected', 'doctor.realtimeFail': 'Realtime channels are incomplete. Polling remains available and recovery is automatic.',
+        'doctor.start': 'Start', 'doctor.showQr': 'Show QR', 'doctor.copyAddress': 'Copy address', 'doctor.copyCommand': 'Copy command',
+        'doctor.reportCopied': 'Diagnostic report copied', 'doctor.commandCopied': 'Firewall command copied. Review the network scope before running it.', 'doctor.addressCopied': 'Server address copied',
+        'theme.default': 'Default', 'theme.dark': 'Sunset', 'theme.light': 'Elbphilharmonie', 'theme.neutral': 'Prairie Tower', 'theme.mono': 'Monochrome', 'theme.fish': 'Blue Fat Fish',
+        'theme.panelTitle': 'Choose theme', 'theme.close': 'Close',
+        'repo': 'Repo',
+        'donateTitle': 'Support', 'donateThanks': 'Thanks for your support ☕',
+        'feedbackTitle': 'Feedback',
+        'feedback.githubDesc': 'Report bugs · suggest features', 'feedback.giteeDesc': 'Mirror in China, no proxy needed', 'feedback.biliDesc': 'Chat on the UP\'s Bilibili page',
+        'unauth': 'Not connected',
+        'tokenPlaceholder': 'Gateway access token',
+        'enter': 'Enter',
+        'startup.title': 'Run gateway automatically after sign-in',
+        'startup.hint': 'Run the gateway in the background after Windows sign-in, so you can connect through the relay and start DSH remotely. Keep this computer powered on and online.',
+        'startup.enable': 'Enable startup', 'startup.disable': 'Disable startup', 'startup.busy': 'Updating…',
+        'startup.on': 'Enabled · starts after this Windows user signs in', 'startup.off': 'Disabled',
+        'startup.unsupported': 'Windows sign-in startup is currently supported', 'startup.unavailable': 'Cannot read startup status. Start the gateway or upgrade Remote, then refresh.',
+        'startup.broken': 'Startup needs repair. Enable it again.', 'startup.conflict': 'Another startup configuration exists. Check it on this computer.',
+        'startup.savedOn': 'Sign-in startup enabled', 'startup.savedOff': 'Sign-in startup disabled. The running gateway stays online.',
+        'startup.repair': 'Repair startup', 'startup.refresh': 'Refresh status',
+        'startGateway': 'Start gateway',
+        'stopGateway': 'Stop gateway',
+        'starting': 'Starting…',
+        'stopping': 'Stopping…',
+        'gatewayPort': 'Gateway port',
+        'gatewayPort.current': 'Current {port}',
+        'savePort': 'Save',
+        'toast.portInvalid': 'Port must be an integer from 1 to 65535',
+        'toast.portSaved': 'Port updated, gateway switched to {port}',
+        'toast.portSavedIdle': 'Port saved; gateway not running, takes effect on next start',
+        'toast.portEnv': 'Environment variable takes priority, current port remains {port}',
+        'toast.portFailedMsg': 'Failed to save port: {msg}',
+        'qrCode': 'QR code',
+        'rotateToken': 'Rotate token',
+        'copyToken': 'Copy token',
+        'signOut': 'Sign out',
+        'deviceKeys.title': 'Per-device keys', 'deviceKeys.desc': 'Give every device its own token so it can be rotated or signed out separately. The shared token remains admin-only.',
+        'deviceKeys.add': 'Add device', 'deviceKeys.note': 'Note', 'deviceKeys.ip': 'IP', 'deviceKeys.empty': 'No device keys',
+        'deviceKeys.neverUsed': 'Not connected yet', 'deviceKeys.edit': 'Edit', 'deviceKeys.revoke': 'Sign out',
+        'deviceKeys.enableConfirm': 'Existing phones and browsers using the shared token will disconnect and must pair again with a device QR code. Continue?',
+        'deviceKeys.disableConfirm': 'All per-device tokens will stop working and clients must use the shared token again. Continue?',
+        'deviceKeys.revokeConfirm': 'Sign out this device? Its token becomes invalid immediately.',
+        'deviceKeys.rotateConfirm': 'Rotate this device token? It will disconnect and must scan again.',
+        'deviceKeys.notePrompt': 'Device note',
+        'deviceKeys.enabled': 'Per-device keys enabled. Pair clients with a device QR code.',
+        'deviceKeys.disabled': 'Per-device keys disabled. Clients now use the shared token.',
+        'deviceKeys.created': 'Device key created', 'deviceKeys.saved': 'Device note saved',
+        'deviceKeys.rotated': 'Device token rotated', 'deviceKeys.revoked': 'Device signed out',
+        'deviceKeys.failed': 'Device key operation failed: {msg}',
+        'pairTitle': 'Pair with the mobile app',
+        'devices': 'Connected devices',
+        'noDevices': 'No devices yet',
+        'th.status': 'Status', 'th.name': 'Name', 'th.type': 'Type', 'th.ip': 'IP',
+        'th.channels': 'Channels', 'th.requests': 'Requests', 'th.lastSeen': 'Last seen', 'th.ua': 'UA',
+        'badge.embedded': 'Embedded', 'badge.gateway': 'Gateway', 'badge.connected': 'Connected',
+        'badge.gateway.title': 'Open gateway admin in a new tab', 'badge.gatewayDown': 'Gateway not running',
+        'token.pluginNoGateway': 'Plugin mode · no gateway, no token needed', 'token.unavailable': 'Token unavailable',
+        'toast.tokenInvalid': 'Invalid token', 'toast.connFailed': 'Connection failed', 'toast.authLayer': 'The login proxy blocked the admin API; check authentication rules for /remote/*',
+        'stat.pluginVersion': 'Plugin version', 'stat.gatewayVersion': 'Gateway version',
+        'stat.updateAvailable': 'v{version} available', 'stat.currentV': 'Current v{version}',
+        'stat.download': 'Download', 'stat.embedded': 'Embedded in DSH · no gateway',
+        'stat.updateCheck': 'Update check: {error}', 'stat.latest': 'Up to date (source check)', 'stat.notChecked': 'Not checked',
+        'stat.hostIP': 'Host IP · {hostname}', 'stat.ipSep': ', ', 'stat.phoneGateway': ' (phone connects to gateway {port})', 'stat.phoneThis': ' (phone connects to this address)',
+        'hostIPs.title': 'Host IP addresses', 'hostIPs.badge': 'Phone connection candidates', 'hostIPs.loading': 'Reading host addresses…', 'hostIPs.summary': '{enabled}/{total} addresses enabled', 'hostIPs.desc': 'Disabled virtual-machine, container, or other invalid addresses are excluded from pairing QR codes, diagnostics, and firewall suggestions. In Docker, add a host address manually.', 'hostIPs.enabledColumn': 'Enabled', 'hostIPs.addressColumn': 'Host IP', 'hostIPs.statusColumn': 'Status', 'hostIPs.enabled': 'Enabled · used for pairing', 'hostIPs.disabled': 'Disabled · excluded from pairing', 'hostIPs.enable': 'Toggle this address', 'hostIPs.empty': 'No usable non-loopback address', 'hostIPs.keepOne': 'Keep at least one usable address enabled', 'hostIPs.add': 'Add host address', 'hostIPs.addPrompt': 'Enter a host IP or hostname reachable by the phone:', 'hostIPs.invalid': 'Invalid address format', 'hostIPs.exists': 'This address is already listed', 'hostIPs.remove': 'Remove',
+        'stat.reachable': 'Reachable', 'stat.unreachable': 'Unreachable', 'stat.dshUpstream': 'DSH upstream {url}',
+        'stat.devicesOnline': 'Devices online / total', 'stat.totalRequests': 'Total requests', 'stat.authFailures': 'Auth failures',
+        'stat.uptime': 'Uptime · {host}:{port}',
+        'stats.title': 'Tokens, API costs & plan quotas',
+        'stats.todayTokens': 'Tokens today',
+        'stats.todayCost': 'Cost today',
+        'stats.peakShare': 'Peak share',
+        'stats.input': 'Uncached input',
+        'stats.cacheRead': 'Cache read',
+        'stats.cacheWrite': 'Cache write',
+        'stats.output': 'Output',
+        'stats.peak': 'Peak', 'stats.off': 'Off-peak',
+        'stats.days': 'Last {n} days',
+        'stats.gatewayDown': 'Stats require the gateway to be running', 'stats.empty': 'No stats yet — they aggregate as sessions happen',
+        'stats.note': 'Note: estimates assume the official DeepSeek API. Token-based calculation may differ from the official bill; always defer to deepseek.com. Stats start from the 2026-08-17 pricing date.',
+        'unit.sec': 's', 'unit.min': 'min', 'unit.hour': 'h ', 'unit.minShort': 'm', 'unit.day': 'd ',
+        'device.installedNotRunning': 'Gateway installed · not running', 'device.noGatewayBinary': 'Gateway binary not found',
+        'device.ipRefresh': '{n} IPs · refreshed every 5s',
+        'device.downloadApp': 'Download mobile app', 'device.downloadGateway': 'Download gateway ({os})',
+        'device.noBinaryGuide': 'This plugin package does not include the gateway binary: download and run the gateway for your OS',
+        'device.afterRunGuide': 'After starting the gateway, come back and refresh this page to see device monitoring and the full token',
+        'device.installedGuide': 'The gateway is installed with the plugin but not running — click "Start gateway" above',
+        'device.afterStartGuide': 'After startup this page refreshes into gateway mode (full device monitoring + token)',
+        'device.kind.app': 'App', 'device.kind.admin': 'Admin', 'device.kind.web': 'Browser', 'device.kind.unknown': 'Unknown',
+        'device.online': 'Online', 'device.offline': 'Offline', 'device.note': 'Note', 'device.kick': 'Kick',
+        'prompt.note': 'Set note for {ip} (empty to clear):', 'toast.noteSaved': 'Note saved', 'toast.noteFailed': 'Save failed',
+        'confirm.kick': 'Disconnect this device?', 'toast.kicked': 'Disconnected {ip}', 'toast.opFailed': 'Operation failed',
+        'toast.tokenCopied': 'Token copied', 'toast.copyFailed': 'Copy failed, select manually',
+        'toast.gatewayDown': 'Gateway not running', 'toast.popupBlocked': 'Popup blocked, allow popups for this site',
+        'confirm.rotate': 'After rotation the old token is invalid immediately. Phones and browsers must re-scan / re-enter. Continue?',
+        'toast.rotated': 'Token rotated, re-pair your devices', 'toast.rotateFailed': 'Rotate failed',
+        'toast.rotateFailedMsg': 'Rotate failed: {msg}',
+        'toast.gatewayStarted': 'Gateway started', 'toast.gatewayAlready': 'Gateway already running', 'toast.gatewayStopped': 'Gateway stopped',
+        'toast.gatewayPending': 'Gateway starting, refresh later', 'toast.done': 'Done',
+        'toast.opFailedMsg': 'Operation failed: {msg}',
+        'pair.hint': '{base} · App "Settings → Scan to connect", or scan with the system camera to open the App',
+        'pair.failed': 'QR generation failed',
+        'login.title': 'DSH Remote Admin'
+      }
+    }
+  </script>
+  <script src="../setup.js"></script>
+  <script src="../qrcode.min.js"></script>
+  <script src="../i18n.js"></script>
+  <script src="../theme.js"></script>
+  <script src="../vendor/gsap/gsap.min.js"></script>
+  <script src="../motion.js"></script>
+  <script src="../remote-state.js"></script>
+  <script src="../remote-ui.js"></script>
+  <script src="../admin.js"></script>
+  <script src="../doctor.js"></script>
+  <script src="../doctor-entry.js"></script>
+  <script src="../relay-settings.js"></script>
+  <script>window.mountAdminRelaySettings?.()</script>
+</body>
+</html>

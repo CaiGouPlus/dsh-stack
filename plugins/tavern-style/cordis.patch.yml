@@ -1,0 +1,17 @@
+# @local/dsh-tavern-style bundle patch: inserts its plugin row into the profile roster.
+#
+# 单行同时挂载两个半区（与官方插件 dsh-usage 同形）：
+#   - host 半区（lib/index.js）：只读读取酒馆的用户数据文件 + 会话分桶统计，
+#     并通过只读 HTTP 路由 `/api/tavern-style/overview` 暴露给界面；
+#   - 浏览器半区（lib/client.js）：注册「设置 → 文风实验室」分区。
+#
+# ⚠️ 行 id 与浏览器半边的注册 id 是**两回事**（2026-09-27 实测，两次启动崩溃的根因）：
+#   - 行 id（这里）= 本行在 loader 树里的名字，这里叫 `tavern-style`；
+#   - lib/client.js 里 `__ModuleLoader__.load({ id })` 必须写**包名** `@local/dsh-tavern-style`
+#     （= 本行的 name 字段），也接受 `<包名>/client` 后缀。
+#   写错（比如写成行 id）会让加载器判定"该行没有注册"，回退用另一个 URL 再执行一次同一 bundle
+#   → `duplicate factory registration` → 整个 web boot 失败、应用起不来。
+#   改完务必跑 `node D:\DSH\_verify_boot.mjs`：它会校验"客户端注册 id == 包名"。
+- insert:
+    - id: tavern-style
+      name: '@local/dsh-tavern-style'

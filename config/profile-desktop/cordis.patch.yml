@@ -1,0 +1,234 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+- id: ui-settings-account
+  name: "@deepseek-ai/dsh-client-ui-settings-account"
+  config:
+    version: 1
+    step: done
+    purpose: null
+    process: standard
+    completion: skipped
+    usage: compact
+    developerTools: false
+- id: ui-chat
+  name: "@deepseek-ai/dsh-client-ui-chat"
+  config:
+    transcriptView: verbose
+    performanceUsage: detailed
+- id: ui-settings
+  name: "@deepseek-ai/dsh-client-ui-settings"
+  config:
+    enabled: false
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: deepseek-account
+    model: deepseek-flash
+    reasoningEffort: max
+
+# --- 2026-10-17 恢复：0.2.1 升级后 profile 被重置时丢掉的自定义 provider ---
+# 仅恢复「不写就完全不存在」的部分；llm-deepseek 的模型表、permission 预设、
+# agent-preset-registry 默认预设等刻意没恢复（0.1.x 时代的旧值，可能与 0.2.1 默认冲突）。
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      zhipu:
+        displayName: 智谱 GLM
+        apiKeyEnv: ZHIPU_API_KEY
+        api: openai-completions
+        baseURL: https://open.bigmodel.cn/api/paas/v4/
+        models:
+          - id: glm-4.6v-flash
+            name: GLM-4.6V-Flash
+            contextWindow: 131072
+            maxTokens: 8192
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              max: max
+          - id: glm-4.7-flash
+            name: GLM-4.7-Flash
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              max: max
+          - id: cogview-3-flash
+            name: CogView-3-Flash
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              max: max
+      xiaomi:
+        apiKeyEnv: XIAOMI_API_KEY
+        models:
+          - id: mimo-v2.6-pro
+            name: MiMo-V2.6-Pro
+            contextWindow: 1048576
+            maxTokens: 131072
+            input:
+              - text
+              - image
+            reasoningEfforts:
+              low: low
+              medium: medium
+              high: high
+              xhigh: high
+              max: high
+        baseURL: https://token-plan-cn.xiaomimimo.com/v1
+      local:
+        displayName: 本地 llama.cpp
+        api: openai-completions
+        baseURL: http://127.0.0.1:11435/v1
+        apiKeyEnv: LOCAL_LLM_KEY
+        models:
+          - id: qwen3.5-4b
+            name: Qwen3.5-4B (本地)
+            contextWindow: 32768
+            maxTokens: 4096
+            input:
+              - text
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: high
+              max: max
+- id: pwsh-sandbox
+  name: "@deepseek-ai/dsh-pwsh-sandbox"
+  config:
+    maxOutputBytes: 640000
+- id: subagent
+  name: "@deepseek-ai/dsh-subagent"
+  config:
+    maxDepth: 3
+- id: ui-conversation
+  name: "@deepseek-ai/dsh-client-ui-conversation"
+  config:
+    busyEnter: steer
+- id: web-ui-pet
+  name: "@linxin666/dsh-pet"
+  config:
+    visible: true
+    size: 160
+    right: 673
+    bottom: 1170
+    petId: whale-girl-refined
+    enabled: false
+- id: better-sidebar
+  name: dsh-better-sidebar
+  config:
+    viewersEnabled:
+      image: true
+    agentOpenTools: true
+- id: permission
+  name: "@deepseek-ai/dsh-permission-presets"
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: never
+    defaultPreset: danger-full-access
+
+# --- 2026-10-18 修上下文爆满（v2，修正 v1 未生效的原因）--------------------------
+# v1（2026-10-17 20:44）没生效：patch 行的 name 必须与基础层该行实际挂载的包名一致。
+# 基础层该行是 `@deepseek-ai/dsh-llm-deepseek-api-key`（provider 插件），
+# v1 写成了 `@deepseek-ai/dsh-llm-deepseek`（只是传输库，非插件），整行被忽略。
+#
+# 本版修两件事：
+#   1) 输出预留 256,000 → 32768。256,000 是适配器默认值（DEFAULT_MAX_TOKENS=256e3，
+#      实测 request/header 里 adapterDefaults.maxTokens=true，UI 并没有填过 256K），
+#      等于每轮请求先预扣 25% 窗口。一轮正文 800~1500 字（约 1~2k token）足够，
+#      思维链也够写，放出 223,232 token 余量。
+#   2) 显式 models 目录且【不声明】systemPromptUpdate: in-history。
+#      in-history 模式下系统提示每变一次就整份追加进历史（为保 KV cache 前缀）：
+#      实测爆满会话 15 轮囤了 27 份、约 139 万字符，占爆满主因。
+#      不声明时 agent-loop 改为「归并到首个 system 节点」，旧快照逐个清空
+#      （10-17 20:51 切 MiMo 时那 12 条空 system/message 就是归并留下的痕迹，
+#       并非早前误判的“重试风暴”）。
+#      代价：提示词一变 KV cache 前缀从该 token 起未命中（每轮输入全价计费）；
+#      换来的是上下文不再按「一轮一份全量注入」膨胀。
+#      若想保住缓存：改回声明 systemPromptUpdate: in-history，但必须配合
+#      「注入每轮字节级不变」或压缩遮蔽，否则就是这次的爆满。
+- id: llm-deepseek
+  name: '@deepseek-ai/dsh-llm-deepseek-api-key'
+  config:
+    maxTokens: 32768
+    models:
+      - id: deepseek-flash
+        name: DeepSeek-V4.1-Flash
+        contextWindow: 1000000
+        maxTokens: 32768
+        inputModalities: [ text, image ]
+        toolUpdate: addition-only
+      - id: deepseek-v4-pro
+        name: DeepSeek-V4-Pro
+        description: Stronger agentic coding, knowledge, and difficult reasoning; suited
+          to complex or quality-critical tasks at higher cost.
+        contextWindow: 1000000
+        maxTokens: 32768
+
+# --- 2026-10-18 13:30 补：游戏会话 13:17 起切到了【账号路由】deepseek-account ------
+# 上面 v2 补丁打在 API key 路由（deepseek-official）那行，账号路由轮不到生效：
+# 实测 turn 16/17 又各追加一份 ~9.5 万字符的系统提示（总量 139.5 万→158.7 万字符）。
+# 账号行的 Config 同样接受协议字段（lib/types/config.js 把 deepSeekConfigFields
+# 去掉 models 后整套继承），所以这里把输出预留也降下来。
+# ⚠️ in-history 关不掉：账号目录由服务端 GET /models 下发，条目上的
+#    systemPromptUpdate 声明 modelOverrides 只能加、不能删（README 明文）。
+#    要彻底停掉「每轮整份追加」只能走 deepseek-official（API key）路由，
+#    即上面 v2 显式 models 目录生效的那条；账号路由只能靠压缩/归并兜底。
+- id: llm-deepseek-account
+  name: '@deepseek-ai/dsh-llm-deepseek-account'
+  config:
+    maxTokens: 32768
+    modelOverrides:
+      deepseek-flash:
+        maxTokens: 32768
+
+# ── CrossPet 桌宠（integrations/deepseek） ──
+# 把 DeepSeek 的工作状态和余额写给桌宠；移除本段即恢复原样。
+- insert:
+    - id: crosspet
+      name: '@local/dsh-plugin-crosspet'
+- id: web-ui-remote-web-ui
+  name: "@linxin666/dsh-remote-web-ui"
+  config:
+    autoTunnel: true
+    maxDevices: 1
+    lanBind: true
+
+# ── CrossPet 结束 ──
+
+# --- remote-web-ui lan-bind block (managed - do not edit) ---
+- id: webserver
+  name: '@deepseek-ai/dsh-host-webserver'
+  config:
+    host: '127.0.0.1'
+    port: 0
+    compression: gzip
+    compressionLevel: 1
+    compressionThresholdBytes: 1024
+- id: web-ui-session-archive
+  name: "@linxin666/dsh-session-archive"
+  config:
+    autoArchiveEnabled: true
+    autoDeleteEnabled: true
+    autoDeleteDays: 1
+
+# --- end remote-web-ui lan-bind block ---

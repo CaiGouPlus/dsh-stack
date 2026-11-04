@@ -1,0 +1,16 @@
+# dsh-block-contract bundle patch：把自己的插件行插进 profile 名册。
+#
+# ⚠️ 这个文件 + package.json 里的 dsh.bundle **缺一不可**（2026-10-01 实测踩坑）：
+#   dsh-app-boot@0.2.0-rc.2 lib/index.js:929
+#     if (bundle === void 0) throw new Error(`${binName}: profile bundle ${JSON.stringify(packageName)}
+#       declares no dsh.bundle in its package.json`)
+#   这句在一个 for…try…catch 里，catch 把包推进 skippedBundles —— 于是：
+#     · 插件**根本不会加载**；
+#     · 手写进 dsh.profile.bundles 的那一行，会在宿主下次重写 package.json 时**被剔除**。
+#   （2026-09-30 我手写 bundles 之后，第二天就发现它不见了 —— 就是这个原因。）
+#
+# 本插件只有 host 半边（不需要浏览器半边），所以不声明 dsh.client。
+# 它 inject 宿主服务 systemPrompt，在装配对话时追加「展示块输出契约」。
+- insert:
+    - id: dsh-block-contract
+      name: 'dsh-block-contract'

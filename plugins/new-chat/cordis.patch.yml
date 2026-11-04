@@ -1,0 +1,9 @@
+# @local/dsh-new-chat bundle patch：把自己这一行插进 profile 名册。
+#
+# 只有 host 半边（lib/index.js 注册 Agent 工具），没有浏览器半边，
+# 所以不需要 __ModuleLoader__ 注册 id —— 下面这一条 insert 就是全部。
+# 对照同 profile 的 @local/dsh-tavern-tools：列进 dsh.profile.bundles 但
+# package.json 缺 dsh.bundle 的包会被静默跳过，所以 files/exports 里也都带着本文件。
+- insert:
+    - id: new-chat
+      name: '@local/dsh-new-chat'

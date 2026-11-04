@@ -1,0 +1,62 @@
+{
+  "name": "dsh-display-blocks",
+  "version": "0.6.2",
+  "private": true,
+  "description": "DSH 展示层插件：把「渲染什么」从代码里拿出来，变成角色卡能声明的规范。通用机器块 [[展示]]{json} + 行内标注（稀有度配色 / 颜色标签），后端格式与前端渲染同源。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.bundle.js",
+    "./spec": "./lib/spec.js",
+    "./parse": "./lib/parse.js",
+    "./render": "./lib/render.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "tools",
+    "demo",
+    "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node tools/build-client.mjs",
+    "demo": "node tools/build-demo.mjs",
+    "test": "node --test tests/core.test.js",
+    "check": "node tools/check-client-entry.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "tavern",
+    "machine-block",
+    "render"
+  ],
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/cordis": {
+      "optional": true
+    }
+  }
+}

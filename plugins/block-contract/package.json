@@ -1,0 +1,26 @@
+{
+  "name": "dsh-block-contract",
+  "version": "0.1.0",
+  "private": true,
+  "description": "把「展示块」输出契约每轮注入 system prompt（host 侧插件）。挂进某个 agent-preset 的 agent.cordis.yml 后，只在该预设的会话里激活 —— 不随角色卡变化，也不需要模型主动加载。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "tools",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "test": "node lib/selftest.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

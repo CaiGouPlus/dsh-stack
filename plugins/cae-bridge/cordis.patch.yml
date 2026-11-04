@@ -1,0 +1,7 @@
+# @local/dsh-cae-bridge bundle patch：把自己这一行插进 profile 名册。
+#
+# 只有 host 半边（index.js 注册 Agent 工具），没有浏览器半边，
+# 所以不需要 __ModuleLoader__ 注册 id —— 下面这一条 insert 就是全部。
+- insert:
+    - id: cae-bridge
+      name: '@local/dsh-cae-bridge'

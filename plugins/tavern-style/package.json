@@ -1,0 +1,33 @@
+{
+  "name": "@local/dsh-tavern-style",
+  "version": "0.1.0",
+  "private": true,
+  "description": "酒馆附属插件：文风实验室 —— 反八股/增强层可视化编辑 + 会话改进工作台 + 学习与比对面板",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.7-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  }
+}

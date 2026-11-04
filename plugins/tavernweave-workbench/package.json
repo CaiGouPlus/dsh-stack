@@ -1,0 +1,37 @@
+{
+  "name": "tavernweave-workbench",
+  "version": "1.0.0",
+  "description": "TavernWeave 酒馆工作台：DSH 原生 Agent preset、20 个 TavernWeave Skill 与会话内制卡工作台。PolyForm 非商业许可，随包保留 TavernWeave 版权声明。",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-api-workspace-controller"
+      ],
+      "platform": "web"
+    }
+  },
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.2",
+    "@deepseek-ai/dsh-tools": ">=0.1.1-rc.2 <0.3.0-0"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "dsh-agent-presets-host",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Declare every preset directory under $DSH_HOME/.agent-presets to the harness agent-preset registry, so presets created in the tavern panel are selectable for new sessions. The registry does not scan disk; something must declare them. v0.2.0: watches the library and resyncs incrementally, so tavern-created presets appear without a restart.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "PolyForm-Noncommercial-Copyleft-1.0.0"
+}

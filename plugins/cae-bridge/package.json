@@ -1,0 +1,29 @@
+{
+  "name": "@local/dsh-cae-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CAE 软件接口层：把 MATLAB / Abaqus / COMSOL / AutoCAD 收敛成 5 个确定性工具（env / matlab / abaqus / comsol / acad），统一 JSON 回执、统一产物目录、统一超时与日志。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.2"
+  },
+  "license": "MIT"
+}

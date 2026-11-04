@@ -1,0 +1,31 @@
+{
+  "name": "@local/dsh-dnd-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DND·无尽冒险 客户端 UI 插件：车卡台 / 升级加点 / 对话内商店面板（DSH Web GUI，官方 slot API）",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [],
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "react": "^18.2.0"
+  },
+  "files": [
+    "lib",
+    "assets",
+    "cordis.patch.yml",
+    "README.md"
+  ]
+}

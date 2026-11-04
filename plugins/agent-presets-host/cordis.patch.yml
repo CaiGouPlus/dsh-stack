@@ -1,0 +1,14 @@
+# dsh-agent-presets-host bundle patch: one host row, no browser half.
+#
+# The row declares every preset directory under the DSH preset library to the
+# agent-preset registry at activation, which is what makes a tavern-created
+# preset (or any other `preset.yml` + `agent.cordis.yml` directory) selectable
+# in the session preset picker. Without a declaration the directory is inert:
+# the harness no longer discovers presets on disk.
+#
+# Optional config (all defaults shown):
+#   presetDir: ''      # library root; '' means $DSH_HOME/.agent-presets
+#   announce:  true    # log one line per declared preset
+- insert:
+    - id: agent-presets-host
+      name: 'dsh-agent-presets-host'

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>dsh-display-blocks · 渲染预览</title>
+<style>
+/* ── Demo 页自身样式（与插件 CSS 完全分离；插件样式由脚本注入） ──
+   主题切换只改这组变量；插件 CSS 全部从 currentColor 派生，自动跟着变。 */
+:root{
+  --bg:#14161b;--panel:#1b1e24;--panel2:#22252d;--border:#2b2f39;
+  --text:#e8e9ec;--dim:#9aa0ac;--accent:#4f8cff;--input:#111318;
+  --mono:ui-monospace,SFMono-Regular,Consolas,"Cascadia Mono",Menlo,monospace;
+}
+body.theme-light{
+  --bg:#eef0f4;--panel:#ffffff;--panel2:#f6f7fa;--border:#dfe2e9;
+  --text:#272a31;--dim:#697080;--accent:#2f6fed;--input:#f6f7fa;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font:14px/1.65 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+}
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 20px;border-bottom:1px solid var(--border);background:var(--panel);
+  position:sticky;top:0;z-index:10;
+}
+.hd-title{display:flex;align-items:baseline;gap:10px;min-width:0}
+.hd-title strong{font-size:15px;letter-spacing:.02em}
+.hd-title span{color:var(--dim);font-size:12.5px}
+.hd-actions{display:flex;gap:8px;flex:none}
+button{
+  font:inherit;font-size:12.5px;color:var(--text);
+  background:var(--panel2);border:1px solid var(--border);border-radius:8px;
+  padding:5px 12px;cursor:pointer;
+}
+button:hover{border-color:var(--accent);color:var(--accent)}
+main{
+  display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:14px;
+  padding:14px 20px 24px;max-width:1400px;margin:0 auto;
+}
+@media (max-width:960px){main{grid-template-columns:1fr}}
+.col-left,.col-right{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  padding:12px 14px;
+}
+.panel-head{
+  display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  font-size:13px;font-weight:600;margin-bottom:10px;
+}
+.panel-head .sub{font-weight:400;color:var(--dim);font-size:12px}
+textarea{
+  width:100%;min-height:230px;resize:vertical;
+  background:var(--input);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;
+  font:12.5px/1.6 var(--mono);
+  tab-size:2;
+}
+#demo-spec{min-height:120px}
+textarea:focus{outline:none;border-color:var(--accent)}
+.hint{color:var(--dim);font-size:12px;margin-top:8px}
+.tpl-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.tpl-row button{padding:3px 10px;font-size:12px;border-radius:999px}
+/* 预览画布（插件卡片在这里渲染；文本色即 currentColor 基准） */
+#demo-preview{
+  background:var(--bg);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;min-height:200px;
+  overflow-wrap:break-word;
+}
+.render-error{color:#e5493a;font-size:13px;border:1px dashed #e5493a66;border-radius:8px;padding:8px 12px}
+/* 透传块提示（demo 页自己的样式，非插件类） */
+.pass-note{
+  border:1px dashed var(--border);border-radius:8px;padding:6px 10px;margin:8px 0;
+  color:var(--dim);font-size:12.5px;
+}
+.pass-note-label{margin-right:6px}
+.pass-note-raw{font-family:var(--mono);font-size:11.5px;word-break:break-all}
+/* 生效词表 */
+.spec-tables{display:flex;flex-direction:column;gap:12px}
+.spec-group-title{font-size:12px;color:var(--dim);margin-bottom:6px}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;border:1px solid var(--border);border-radius:999px;
+  padding:2px 10px;background:var(--panel2);
+}
+.chip .dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.chip.muted{color:var(--dim)}
+footer{
+  text-align:center;color:var(--dim);font-size:12px;padding:6px 0 18px;
+}
+footer code{font-family:var(--mono)}
+</style>
+</head>
+<body class="theme-dark">
+<header>
+  <div class="hd-title">
+    <strong>dsh-display-blocks</strong>
+    <span>渲染预览 · 左侧输入，右侧即时渲染</span>
+  </div>
+  <div class="hd-actions">
+    <button id="btn-theme" type="button">☀ 亮色</button>
+    <button id="btn-reset" type="button">恢复示例</button>
+  </div>
+</header>
+<main>
+  <section class="col-left">
+    <div class="panel">
+      <div class="panel-head">消息正文<span class="sub">模拟模型输出 / 角色卡内容</span></div>
+      <textarea id="demo-msg" spellcheck="false"></textarea>
+      <div class="tpl-row" id="demo-tpl"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">角色卡【展示规范】<span class="sub">增量覆盖默认词表</span></div>
+      <textarea id="demo-spec" spellcheck="false"></textarea>
+      <div class="hint">写坏一行只忽略那一行；留空 = 全默认。改动即时生效。</div>
+    </div>
+  </section>
+  <section class="col-right">
+    <div class="panel">
+      <div class="panel-head">渲染预览<span class="sub" id="demo-stats"></span></div>
+      <div id="demo-preview"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">生效词表<span class="sub">默认 ∪ 卡声明</span></div>
+      <div class="spec-tables">
+        <div class="spec-group"><div class="spec-group-title">稀有度（词 → 色）</div><div class="chip-row" id="tbl-rar"></div></div>
+        <div class="spec-group"><div class="spec-group-title">颜色（短码 / 色名）</div><div class="chip-row" id="tbl-col"></div></div>
+        <div class="spec-group"><div class="spec-group-title">块类型（图标 · 默认色）</div><div class="chip-row" id="tbl-blk"></div></div>
+        <div class="spec-group"><div class="spec-group-title">节的图标 / 版式 / 默认色</div><div class="chip-row" id="tbl-sec"></div></div>
+        <div class="spec-group"><div class="spec-group-title">默认不接管（DND 皮肤负责）</div><div class="chip-row" id="tbl-skip"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>单文件由 <code>node tools/build-demo.mjs</code> 生成 · 与插件共用同一套 <code>spec / parse / render / CSS</code> · <code>file://</code> 双击即开</footer>
+<script id="demo-script">/*__DEMO_SCRIPT__*/</script>
+</body>
+</html>

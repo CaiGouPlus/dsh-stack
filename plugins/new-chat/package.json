@@ -1,0 +1,36 @@
+{
+  "name": "@local/dsh-new-chat",
+  "version": "0.1.0",
+  "private": true,
+  "description": "让模型自己发起一个新对话，并在会话出生时选定 agent 预设：两个工具 new_chat / chat_presets，走宿主 sessionController 服务，不经 typert 网关。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.5-rc.2"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=22.5"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.2 <0.3.0"
+  },
+  "license": "PolyForm-Noncommercial-Copyleft-1.0.0"
+}

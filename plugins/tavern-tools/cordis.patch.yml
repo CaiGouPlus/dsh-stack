@@ -1,0 +1,22 @@
+# @local/dsh-tavern-tools bundle patch: 把自己的插件行插进 profile 名册。
+#
+# ⚠️ 这个文件是 2026-09-30 补的，**缺它插件根本不会加载**。
+#
+# dsh-app-boot@0.2.0-rc.2 `lib/index.js:929`：
+#     if (bundle === void 0) throw new Error(`${binName}: profile bundle
+#       ${JSON.stringify(packageName)} declares no dsh.bundle in its package.json`)
+# 这句在一个 for…try…catch 里（catch 把包推进 skippedBundles）—— 也就是：
+# **列在 dsh.profile.bundles 里、但 package.json 没有 dsh.bundle 的包，
+# 会被抛错并静默跳过**（只进 skippedBundles，不报给用户）。
+#
+# 本插件此前正是这种状态：bundles 里有名字、package.json 里只有 dsh.engines、
+# 既没有 dsh.bundle 也没有这个 patch 文件 ⇒ 12 个工具从未注册过。
+# 光在 dsh.profile.bundles 加一行是**没用**的。
+#
+# 本插件只有 host 半边（lib/index.js 注册 Agent 工具），没有浏览器半边，
+# 所以不需要 __ModuleLoader__ 注册 id —— 下面两行就是全部。
+# 对照同 profile 的 @local/dsh-tavern-style / @local/dsh-dnd-ui / dsh-image-gen，
+# 都各自带 patch 文件。
+- insert:
+    - id: tavern-tools
+      name: '@local/dsh-tavern-tools'

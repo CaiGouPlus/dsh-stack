@@ -1,0 +1,9 @@
+# @local/dsh-webserver-keepalive bundle patch：把自己这一行插进 profile 名册。
+#
+# 只有 host 半边（lib/index.js 拿 ctx.webServer.server 调超时），没有浏览器半边，
+# 所以不需要 __ModuleLoader__ 注册 id。
+- insert:
+    - id: webserver-keepalive
+      name: '@local/dsh-webserver-keepalive'
+      config:
+        keepAliveTimeoutMs: 600000

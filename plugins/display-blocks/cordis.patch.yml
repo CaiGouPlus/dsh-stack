@@ -1,0 +1,8 @@
+# dsh-display-blocks bundle patch。
+#
+# 宿主半边是**空 apply**（本插件不需要任何 host 服务，也不 import 任何
+# @deepseek-ai/dsh* —— 这样启动期的兼容性门禁没有 peer 可查，不会被静默 disable）。
+# 浏览器半边通过 package.json 的 dsh.client 声明被发现。
+- insert:
+    - id: dsh-display-blocks
+      name: 'dsh-display-blocks'

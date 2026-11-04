@@ -1,0 +1,12 @@
+# tavernweave-workbench bundle patch: inserts the workbench row into the plugin roster.
+#
+# 为什么必须有这个文件（原版 1.0.0 缺失，是「装了却从不加载」的直接原因）：
+# `dsh.profile.bundles` 只挑 bundle，真正的插件行来自每个 bundle 的 patch 文件。
+# dsh-app-boot：profile 里每个 bundle 都必须声明 dsh.bundle 并给出 patch 路径，
+# 否则该 bundle 被跳过（lib/index.js:927-929
+# `if (bundle === void 0) throw ... declares no dsh.bundle`，随后进 skippedBundles）。
+# 对照：dsh-tavern / dsh-muv-engine / dsh-image-gen / dsh-tavern-style 都带
+# cordis.patch.yml + "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }。
+- insert:
+    - id: tavernweave-workbench
+      name: 'tavernweave-workbench'

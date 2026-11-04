@@ -1,0 +1,32 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# dependencies
+node_modules/
+__pycache__/
+.cache/
+
+# logs & temp
+*.log
+*.tmp
+*.pid
+
+# local backups (never commit)
+*.bak
+*.bak-*
+*.stack-old-*
+.stack-backups/
+
+# runtime data inside plugins
+plugins/tavern-style/data/
+plugins/tavern-style/lab-workspace/
+
+# mobile build artifacts (rebuildable / too large for git)
+plugins/dsh-remote-plugin/public/*.apk
+plugins/dsh-remote-plugin/public/*.zip
+
+# sync/build reports
+_build-report.json
+stack-build-report.json

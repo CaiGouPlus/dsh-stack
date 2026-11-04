@@ -1,0 +1,11 @@
+# @local/dsh-dnd-ui bundle patch: inserts the DND UI plugin row into the web plugin roster.
+#
+# 与 @local/dsh-tavern 的 patch 同形（id + name 两字段）。
+# ⚠️ 客户端 bundle 的 __ModuleLoader__.load({ id }) 必须等于**包名**（= 本行 name 字段
+#    `@local/dsh-dnd-ui`，即 package.json 的 name），**不是**行 id `dnd-ui`。
+#    判据：display-blocks 的 tools/check-client-entry.mjs 断言「注册 id === 包名」
+#    （剥掉 /client 后缀），而 display-blocks 是实测能正常渲染的插件；写成行 id 会让
+#    加载器认为该行没注册 → 回退另一 URL 再执行一遍 → duplicate factory registration。
+- insert:
+    - id: dnd-ui
+      name: '@local/dsh-dnd-ui'

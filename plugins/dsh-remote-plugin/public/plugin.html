@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DSH Remote</title>
+  <script>(function(){try{var t=localStorage.getItem('dshTheme');if(t!=='default'&&t!=='dark'&&t!=='light'&&t!=='neutral'&&t!=='mono'&&t!=='fish'){t='fish'}}catch(e){t='fish'}document.documentElement.setAttribute('data-theme',t)})()</script>
+  <link rel="stylesheet" href="theme-vars.css">
+  <link rel="stylesheet" href="setup.css">
+  <link rel="stylesheet" href="insights.css">
+  <link rel="stylesheet" href="remote-ui.css">
+  <link rel="stylesheet" href="doctor.css">
+  <link rel="stylesheet" href="skins/blue-fish/skin.css">
+  <style>html[data-theme="light"],html[data-theme="neutral"],html[data-theme="fish"]{color-scheme:light}</style>
+</head>
+<body class="remote-panel-body">
+  <main class="plugin-shell" data-motion-view>
+    <header class="plugin-head">
+      <div class="plugin-brand"><span class="plugin-brand-mark" aria-hidden="true"><morph-icon id="plugin-toggle-icon" data-morph-closed="M8 3h8v18H8zM11 17h2" data-morph-open="M8 3h8v18H8zM10 11l2 2 4-4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 3h8v18H8zM11 17h2"/></svg></morph-icon></span><span class="plugin-brand-copy"><span class="plugin-brand-name">DSH Remote</span><span id="plugin-host" class="plugin-brand-sub">本地控制器</span></span></div>
+      <button id="plugin-close" class="plugin-close" type="button" aria-label="关闭面板" title="关闭面板">×</button>
+    </header>
+    <section id="plugin-hero" class="plugin-hero" aria-live="polite">
+      <div id="plugin-status" class="plugin-status">正在检查连接</div>
+      <div id="plugin-status-desc" class="plugin-status-desc">读取主机与网关状态</div>
+      <div class="plugin-status-line"><span id="plugin-status-meta"></span></div>
+      <div class="plugin-primary-actions">
+        <button id="plugin-primary" class="plugin-primary" type="button">打开控制台</button>
+        <button id="plugin-doctor" class="plugin-primary plugin-doctor-button" type="button">AI 排查问题</button>
+      </div>
+    </section>
+    <div id="plugin-health-path" class="remote-health-path" aria-label="连接链路"></div>
+    <div id="plugin-error" class="plugin-error hidden" role="alert"></div>
+    <section class="plugin-actions" aria-label="快速操作">
+      <button id="plugin-pair" class="plugin-action" type="button">已有 App，去配对</button>
+      <button id="plugin-console" class="plugin-action" type="button">完整控制台</button>
+    </section>
+    <div id="plugin-setup" hidden></div>
+    <section class="plugin-usage" aria-labelledby="plugin-usage-title">
+      <div class="remote-section-head"><h3 id="plugin-usage-title">额度与余额</h3><button id="plugin-usage-refresh" class="remote-link" type="button">刷新</button></div>
+      <div id="plugin-cost-data" aria-live="polite"><p class="remote-empty">正在读取额度…</p></div>
+    </section>
+    <section class="remote-connections" aria-labelledby="plugin-online-title">
+      <div class="remote-section-head"><h3 id="plugin-online-title">在线连接</h3></div>
+      <div id="plugin-client-list"><p class="remote-empty">正在读取连接列表…</p></div>
+    </section>
+    <footer class="plugin-foot"><span id="plugin-version">—</span><a id="plugin-about" href="/remote/admin/#remote/settings" target="_blank" rel="noopener">关于与支持</a></footer>
+  </main>
+  <script src="i18n.js"></script>
+  <script src="vendor/gsap/gsap.min.js"></script>
+  <script src="motion.js"></script>
+  <script type="module" src="morphicons-init.js"></script>
+  <script src="qrcode.min.js"></script>
+  <script src="remote-state.js"></script>
+  <script src="remote-ui.js"></script>
+  <script src="setup.js"></script>
+  <script src="insights.js"></script>
+  <script src="plugin.js"></script>
+  <script src="doctor.js"></script>
+  <script src="doctor-entry.js"></script>
+</body>
+</html>

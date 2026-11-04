@@ -1,0 +1,29 @@
+{
+  "name": "@local/dsh-webserver-keepalive",
+  "version": "0.1.0",
+  "private": true,
+  "description": "把 dsh 宿主 HTTP 网关的 keepAliveTimeout 从 Node 默认 5s 拉长（默认 10 分钟），消除客户端复用半死 socket 导致的 gateway/internal ... Failed to fetch。",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.0-0"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

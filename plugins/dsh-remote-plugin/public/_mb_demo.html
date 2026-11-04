@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机器块 · 契约渲染预览</title>
+<link rel="stylesheet" href="theme-vars.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 18px 0 40px;
+    background: var(--dsr-bg); color: var(--dsr-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .phone {
+    width: 390px; max-width: calc(100vw - 24px);
+    background: var(--dsr-panel); border: 1px solid var(--dsr-line);
+    border-radius: 22px; overflow: hidden; box-shadow: 0 8px 30px var(--dsr-shadow);
+  }
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--dsr-line);
+    background: var(--dsr-panel-2); font-size: 13px; color: var(--dsr-muted);
+  }
+  .bar b { color: var(--dsr-text); font-size: 14px; font-weight: 600; }
+  .thread { padding: 14px 12px 18px; display: flex; flex-direction: column; gap: 10px; }
+  .bubble {
+    padding: 10px 12px; border-radius: 4px 14px 14px 14px;
+    background: var(--dsr-panel-2); border: 1px solid var(--dsr-line);
+    font-size: 14px; line-height: 1.65; overflow-wrap: anywhere;
+  }
+  .bubble .md > p { margin: 0 0 8px; }
+  .bubble .md > p:last-child { margin-bottom: 0; }
+  .bubble .md ul { margin: 6px 0; padding-left: 20px; }
+  .me { align-self: flex-end; border-radius: 14px 4px 14px 14px; background: var(--dsr-accent-soft); border-color: var(--dsr-accent-line); max-width: 80%; }
+  .tools { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 0 12px; }
+  .tools button {
+    font: inherit; font-size: 12px; padding: 5px 11px; border-radius: 999px; cursor: pointer;
+    background: var(--dsr-panel-2); color: var(--dsr-muted);
+    border: 1px solid var(--dsr-line);
+  }
+  .tools button.on { background: var(--dsr-accent-soft); color: var(--dsr-accent); border-color: var(--dsr-accent-line); }
+  .hint { font-size: 12px; color: var(--dsr-muted); text-align: center; padding: 0 16px; }
+</style>
+</head>
+<body>
+
+<div class="tools" id="tools">
+  <button data-t="light" class="on">light</button>
+  <button data-t="dark">dark</button>
+  <button data-t="fish">fish（默认）</button>
+  <button data-t="mono">mono</button>
+</div>
+<div class="hint">从上到下：状态更新（DND 专用版式）· 人物（契约渲染：节 / 稀有度 / 行内(传说)标注）· 商店（专用版式）· 升级（专用版式）· 任务（契约渲染：标签布局）</div>
+
+<div class="phone">
+  <div class="bar">◂ <b>DND 无尽冒险</b> <span style="margin-left:auto">下层 · 黄昏</span></div>
+  <div class="thread">
+    <div class="bubble me">我推开酒馆的门，环视四周。</div>
+    <div class="bubble"><div class="md" id="m1"></div></div>
+    <div class="bubble me">那个老人是谁？</div>
+    <div class="bubble"><div class="md" id="m2"></div></div>
+    <div class="bubble me">看看他柜台上摆了什么货。</div>
+    <div class="bubble"><div class="md" id="m3"></div></div>
+    <div class="bubble me">我把战利品交给行会，登记功勋。</div>
+    <div class="bubble"><div class="md" id="m4"></div></div>
+    <div class="bubble me">去看看告示板。</div>
+    <div class="bubble"><div class="md" id="m5"></div></div>
+  </div>
+</div>
+
+<script src="genui.js"></script>
+<script src="chat-files.js"></script>
+<script src="md.js"></script>
+<script src="dsp-core.js"></script>
+<script src="dnd-blocks.js"></script>
+<script>
+  const M1 = `门轴发出一声闷响，酒馆里的喧闹短暂地停了一下，随即又盖过你的脚步声。
+
+**墙上贴着一张告示**，边角被潮气泡卷：
+
+- 悬赏：旧矿坑的"回声"
+- 报酬：120 金币
+- 要求：至少三人同行
+
+[[状态更新]]{"生命":42,"生命上限":50,"护甲":17,"等级":5,"经验":6500,"金币":120,"状态":["中毒","疲惫"],"位置":{"区域":"深水城·下层","坐标":"B3"},"物品":[{"名":"火把","数量":3},{"名":"治疗药水","数量":2}],"奇遇":"告示的墨迹还是新的"}`
+
+  const M2 = `吧台后那个独眼矮人忽然停下手里的活，朝你身后的门帘抬了抬下巴。
+
+进来的老人披着一件洗得发白的法袍，指尖却有一点没散尽的火光。
+
+[[人物]]{"名":"凯尔本·黑杖","类型":"人物","稀有度":"传说","色":"#7c4dff","节":[{"名":"年龄","值":"127 岁，看上去却只有五十出头"},{"名":"外貌","值":"白发黑杖，左手一枚（传说）龙鳞戒；法袍下摆绣着早已解散的银月盟纹章"},{"名":"性格","值":"寡言，但一旦开口就像在宣读判词"},{"名":"技能","布局":"标签","值":["焰击术","魔法飞弹","法术反制","传送法阵"]},{"名":"装备","值":{"法杖":"黑杖（神器）","戒指":"龙鳞戒","披风":"夜行者的旧袍"}}],"字段":{"阵营":"中立","身份":"黑杖塔主人"},"条目":["黑杖塔的名讳不可直呼","与竖琴手同盟有旧怨"],"备注":"他看你的眼神，像是在核对一份很久以前的名单"}`
+
+  const M3 = `独眼矮人把杯子往柜台上一放，铜板在木面上弹了两下。
+
+"挑吧，都是这个月新到的。"他用抹布指了指身后那排挂着的家伙。
+
+[[商店]]{"名":"铁砧与烈焰","类型":"武器店","店主":"独眼巴林","位置":"深水城·下层","货源":"进阶","货币":"gp","商品":[{"名":"火把","稀有度":"普通","类别":"杂物","价":3,"存量":12},{"名":"治疗药水","稀有度":"精良","类别":"药水","价":50,"存量":2},{"名":"精钢长剑","稀有度":"精良","类别":"武器","价":320,"存量":1},{"名":"龙鳞胸甲","稀有度":"传说","类别":"护甲","价":5000,"存量":0,"备注":"店主说这件不卖，只是挂着"}]}`
+
+  const M4 = `行会书记官在你的卷宗上盖了章，火漆还未干透。
+
+"旧矿坑的封条解了。"她抬起眼睛，"你比上次高了一头。"
+
+[[升级]]{"从":4,"到":5,"累计XP":6500,"下一门槛":14000,"职业":"战士","自动":{"生命骰":"d10","HP增量":8,"HP上限":58,"熟练加值":3},"待选":["属性值提升(+2 一维，上限 20)","取一个专长"],"备注":"5 级获得额外攻击"}`
+
+  const M5 = `告示板上的羊皮纸换了新的，钉子还带着铁匠铺的余温。
+
+[[任务]]{"名":"旧矿坑的回声","类型":"任务","稀有度":"稀有","节":[{"名":"委托方","值":"深水城行会 · 书记官艾拉"},{"名":"报酬","值":"120 金币，另计（精良）装备一件"},{"名":"当前进度","值":"2 / 3 —— 还差最后一处祭坛"},{"名":"已知情报","布局":"标签","值":["回声会模仿活人嗓音","矿坑第三层有塌方","鳞片属于某种会说话的东西"]}],"备注":"封条解了，但没人愿意第一个下去"}`
+
+  const M4 = `骰子骨碌碌地在木盘上转了半圈，停住。
+
+[[车卡]]{"名":"梅尔·灰羽","种族":"半精灵","职业":"游侠","等级":3,"阵营":"中立善良","生命":28,"生命上限":28,"护甲":15,"属性":{"力量":10,"敏捷":16,"体质":14,"智力":12,"感知":13,"魅力":8},"背景":"曾在北境的林线做过三年斥候"}
+
+[[提示]]{"剩余体力":"不足","建议":"回城补给后再深入矿坑"}`
+
+  const mdFn = window.mdToHtml
+  const raws = [M1, M2, M3, M4, M5]
+  raws.forEach((raw, i) => {
+    document.getElementById('m' + (i + 1)).innerHTML = mdFn(raw, { fileLinks: true })
+  })
+
+  document.getElementById('tools').addEventListener('click', e => {
+    const t = e.target.dataset.t
+    if (!t) return
+    document.documentElement.dataset.theme = t
+    for (const b of document.querySelectorAll('#tools button')) b.classList.toggle('on', b === e.target)
+  })
+</script>
+</body>
+</html>
