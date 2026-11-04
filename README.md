@@ -164,6 +164,10 @@ dsh-stack/
 ## 排错
 
 - **install.ps1 报“检测到 DSH 正在运行”**：从托盘完全退出 DSH 再跑；或 `-Force`。
+- **git clone 很慢 / 卡住**：本机到 GitHub 的 SSH 下载可能被限速。可以：
+  1. 先试浅克隆：`git clone --depth 1 git@github.com:CaiGouPlus/dsh-stack.git D:\DSH\dsh-stack`；
+  2. 还不行就在 GitHub 网页 Code → Download ZIP，解压到 `D:\DSH\dsh-stack`，
+     直接运行 `install.ps1`。安装本身**不依赖 .git**，ZIP 解压后的目录同样可用。
 - **插件页有红色错误**：多半是依赖没装。`cd %USERPROFILE%\.dsh\profiles\desktop`，
   跑 `pnpm install`，再重启 DSH。
 - **`D:\DSH\skills` 已存在真实目录**：脚本会保留它并提示；Skill 仍会复制到
