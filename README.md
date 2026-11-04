@@ -80,7 +80,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 4. 合并 `cordis.patch.yml`：按 `id` 去重，**已有条目优先，只补缺失条目**；
    `-PatchMode replace` 可整份替换。
 5. 复制 `skills/*` 到 `%USERPROFILE%\.dsh\skills\`；旧目录先备份。
-6. 用 PATH 里的 pnpm，或 DSH 自带的 pnpm 执行 `pnpm install`。
+6. 用 PATH 里的 pnpm，或 DSH 自带的 pnpm 执行 `pnpm install`（需要联网拉取 npm 依赖）。
 7. 若 `-DshRoot` 不是 `D:\DSH`，写入用户环境变量覆盖写死的默认路径。
 
 所有被覆盖的内容备份在 `%USERPROFILE%\.dsh\.stack-backups\<时间>\`。
@@ -94,6 +94,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 | `-PatchMode` | `merge` | `merge` / `replace` / `skip` |
 | `-SkipDeps` | 关 | 跳过 `pnpm install` |
 | `-SkipSkills` | 关 | 跳过 Skill 复制 |
+| `-SkipEnv` | 关 | 不写用户环境变量（测试用） |
 | `-DryRun` | 关 | 只打印计划，不改文件 |
 | `-Force` | 关 | 允许在 DSH 运行时执行、替换已有目录 |
 
@@ -143,6 +144,8 @@ git push
 - `%USERPROFILE%\.dsh\.credentials.yaml`（API Key）、`sessions/`、
   `.agent-presets/`（酒馆角色卡 / 世界书 / 预设）、`tiddlywiki/`、`skins/`。
 - `D:\DSH` 下的 DND 世界书、资料库、游玩记录、构建脚本等大体积内容。
+- 3 个 `tavern-preset-*` Skill 本身已入库，但它们对应的酒馆预设（`.agent-presets/`）没有入库；
+  换机器后这些 Skill 仍可读，预设需要在酒馆面板里重建或单独迁移。
 
 这些需要另行备份；换机器后模型 Key 与酒馆预设要重新配置或单独迁移。
 
