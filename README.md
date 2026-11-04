@@ -135,7 +135,8 @@ powershell -ExecutionPolicy Bypass -File .\setup-github-ssh-proxy.ps1
 
 ```
 Host github.com
-  HostName github.com
+  HostName ssh.github.com
+  Port 443
   User git
   ProxyCommand "C:/Program Files/Git/mingw64/bin/connect.exe" -H 127.0.0.1:7897 %h %p
   ServerAliveInterval 30

@@ -76,7 +76,8 @@ Write-Ok $connect
 $block = @"
 $markerStart
 Host github.com
-  HostName github.com
+  HostName ssh.github.com
+  Port 443
   User git
   ProxyCommand "$connectForSsh" -H ${ProxyHost}:${ProxyPort} %h %p
   ServerAliveInterval 30
