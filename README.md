@@ -144,6 +144,10 @@ Host github.com
 `connect.exe` 是 Git for Windows 自带。不想用了运行脚本加 `-Remove`，
 或直接在 Clash Verge 里开启 **TUN 模式**（全局接管，连 SSH 一起走代理）。
 
+仍慢的话，在 Clash Verge 里换 `凌云` 组的节点——GitHub 对节点很敏感；
+实测同一订阅里不同香港/台湾节点能差 10 倍以上。注意 `凌云` 同时承载 Google、
+Apple 等 300+ 条规则，换节点会影响这些服务。
+
 ## 日常维护
 
 改完插件 / Skill 后，把本机状态同步回仓库：

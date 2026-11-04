@@ -95,7 +95,7 @@ Write-Step "验证 ssh -T git@github.com"
 $prevEap = $ErrorActionPreference
 $ErrorActionPreference = 'Continue'
 try {
-  $out = & ssh -o BatchMode=yes -o ConnectTimeout=15 -T git@github.com 2>&1
+  $out = & ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -T git@github.com 2>&1
   $text = ($out | ForEach-Object { $_.ToString() }) -join "`n"
   Write-Host $text
   # GitHub 成功认证时也会返回 exit 1（不提供 shell），所以以输出为准
