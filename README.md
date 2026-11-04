@@ -12,7 +12,7 @@ DeepSeek Harness（DSH）桌面端的**自建插件 + Skill + desktop profile �
 | DSH 插件 | 13 | `plugins/` |
 | Skill | 14 | `skills/` |
 | desktop profile 配置 | 2 | `config/profile-desktop/` |
-| 安装/同步脚本 | 2 | `install.ps1` / `sync.ps1` |
+| 脚本 | 3 | `install.ps1` / `sync.ps1` / `setup-github-ssh-proxy.ps1` |
 | 清单 | 1 | `stack.json`（插件包名、版本、是否需要进 bundles） |
 
 ### 插件
@@ -113,6 +113,37 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -DshRoot C:\DSH
 这三个变量覆盖了插件里少数写死 `D:/DSH/...` 的默认路径。
 `cae-bridge` 的 CAD 探针已改为写 `%TEMP%\dsh-cad-probe.dwg`，不受盘符影响。
 
+## 国内网络：让 GitHub SSH 也走 Clash
+
+典型症状：`git clone` 卡在几 MB 不动，但 `git push` 正常；浏览器能开 GitHub。
+
+原因：Clash 只开了“系统代理”（mixed-port 7897），没有开 TUN。`git clone/push`
+走的是 SSH，而 SSH 不读系统代理，于是直连 `github.com`。国内直连 GitHub
+的下载通道经常被限速/阻断，上传反而可能正常。
+
+一键修复（推荐，脚本会备份 `~/.ssh/config`）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-github-ssh-proxy.ps1
+```
+
+默认使用 Clash 的 `127.0.0.1:7897`；端口不同就加 `-ProxyPort 7890`。
+验证：`ssh -T git@github.com` 返回 `Hi <用户名>! You've successfully authenticated`
+即正常（GitHub 不提供 shell，exit code 1 是正常的）。
+
+手动等价配置（`%USERPROFILE%\.ssh\config`）：
+
+```
+Host github.com
+  HostName github.com
+  User git
+  ProxyCommand "C:/Program Files/Git/mingw64/bin/connect.exe" -H 127.0.0.1:7897 %h %p
+  ServerAliveInterval 30
+```
+
+`connect.exe` 是 Git for Windows 自带。不想用了运行脚本加 `-Remove`，
+或直接在 Clash Verge 里开启 **TUN 模式**（全局接管，连 SSH 一起走代理）。
+
 ## 日常维护
 
 改完插件 / Skill 后，把本机状态同步回仓库：
@@ -155,6 +186,7 @@ git push
 dsh-stack/
 ├─ install.ps1              # 仓库 -> 本机
 ├─ sync.ps1                 # 本机 -> 仓库
+├─ setup-github-ssh-proxy.ps1  # GitHub SSH 走 Clash
 ├─ stack.json               # 插件/Skill 清单
 ├─ plugins/                 # 13 个插件源码
 ├─ skills/                  # 14 个 Skill
