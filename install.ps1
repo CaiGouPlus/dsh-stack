@@ -216,7 +216,7 @@ function Merge-ProfileJson {
   }
   $existing.dsh.profile.bundles = @($merged)
 
-  $json = $existing | ConvertTo-Json -Depth 40
+  $json = ($existing | ConvertTo-Json -Depth 40) -replace "`r`n", "`n"
   [IO.File]::WriteAllText($Path, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
 }
 
@@ -275,12 +275,12 @@ function Merge-CordisPatch {
     return 'replace'
   }
 
-  $existing = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+  $existing = (Get-Content -LiteralPath $Path -Raw -Encoding UTF8).Replace("`r`n", "`n")
   if ([string]::IsNullOrWhiteSpace($existing)) {
     Copy-Item -LiteralPath $SnapshotPath -Destination $Path -Force
     return 'replace-empty'
   }
-  $snap = Get-Content -LiteralPath $SnapshotPath -Raw -Encoding UTF8
+  $snap = (Get-Content -LiteralPath $SnapshotPath -Raw -Encoding UTF8).Replace("`r`n", "`n")
 
   $ids = @{}
   foreach ($b in (Get-TopLevelBlocks $existing)) {
@@ -297,7 +297,7 @@ function Merge-CordisPatch {
   }
   if ($add.Count -eq 0) { return 'no-change' }
 
-  $merged = $existing.TrimEnd() + "`r`n`r`n" + ($add -join "`r`n`r`n") + "`r`n"
+  $merged = $existing.TrimEnd() + "`n`n" + ($add -join "`n`n") + "`n"
   [IO.File]::WriteAllText($Path, $merged, (New-Object System.Text.UTF8Encoding($false)))
   return "merge+$($add.Count)"
 }

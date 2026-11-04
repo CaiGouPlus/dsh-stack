@@ -127,7 +127,7 @@ foreach ($name in $names) {
   $live = Join-Path $liveSkills $name
   $dev = Join-Path $devSkills $name
   $src = if (Test-Path -LiteralPath $live) { $live } else { $dev }
-  if (Test-Path -LiteralPath $live -and Test-Path -LiteralPath $dev) {
+  if ((Test-Path -LiteralPath $live) -and (Test-Path -LiteralPath $dev)) {
     $liveTime = (Get-ChildItem -LiteralPath $live -Recurse -File | Measure-Object LastWriteTime -Maximum).Maximum
     $devTime = (Get-ChildItem -LiteralPath $dev -Recurse -File | Measure-Object LastWriteTime -Maximum).Maximum
     if ($devTime -gt $liveTime) { $src = $dev }
@@ -163,6 +163,9 @@ if ((Test-Path -LiteralPath $pkgPath) -and (Test-Path -LiteralPath $patchPath)) 
   } else {
     Copy-Item -LiteralPath $pkgPath -Destination (Join-Path $cfgDir 'package.json') -Force
     Copy-Item -LiteralPath $patchPath -Destination (Join-Path $cfgDir 'cordis.patch.yml') -Force
+    $cfgPatchPath = Join-Path $cfgDir 'cordis.patch.yml'
+    $cfgPatchText = [IO.File]::ReadAllText($cfgPatchPath).Replace("`r`n", "`n")
+    [IO.File]::WriteAllText($cfgPatchPath, $cfgPatchText, (New-Object System.Text.UTF8Encoding($false)))
     # 快照里的本地插件路径统一成出厂默认 D:/DSH/<dir>，实际安装路径由 install.ps1 重写
     $snapPkgPath = Join-Path $cfgDir 'package.json'
     $snap = Get-Content -LiteralPath $snapPkgPath -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -170,7 +173,7 @@ if ((Test-Path -LiteralPath $pkgPath) -and (Test-Path -LiteralPath $patchPath)) 
       $link = 'link:D:/DSH/' + $p.dir
       $snap.dependencies | Add-Member -NotePropertyName $p.package -NotePropertyValue $link -Force
     }
-    $snapJson = $snap | ConvertTo-Json -Depth 40
+    $snapJson = ($snap | ConvertTo-Json -Depth 40) -replace "`r`n", "`n"
     [IO.File]::WriteAllText($snapPkgPath, $snapJson + "`n", (New-Object System.Text.UTF8Encoding($false)))
     Write-Ok "config/profile-desktop/*"
   }
@@ -185,7 +188,7 @@ if ($DryRun) {
   Write-Step "dry-run：不写 stack.json"
 } else {
   $stack.generatedAt = (Get-Date).ToString('yyyy-MM-ddTHH:mm:sszzz')
-  $json = $stack | ConvertTo-Json -Depth 20
+  $json = ($stack | ConvertTo-Json -Depth 20) -replace "`r`n", "`n"
   [IO.File]::WriteAllText($stackPath, $json + "`n", (New-Object System.Text.UTF8Encoding($false)))
   Write-Step "已更新 stack.json"
   Write-Host ""
